@@ -1,51 +1,57 @@
 import networkx as nx
-from parser import extract_router_id, extract_summary_lsas, extract_router_nodes
-from parser import extract_router_id, extract_summary_lsas, extract_router_nodes, extract_router_links
 
+from parser import (
+    extract_router_id,
+    extract_summary_lsas,
+    extract_router_nodes,
+    extract_router_links,
+    extract_prefix_advertisements
+)
 
 
 def analyze_prefix(lsdb_text, target_prefix):
 
-    # Identify router where LSDB was taken
+    # Router where LSDB was captured
     router_id = extract_router_id(lsdb_text)
 
-    # Extract prefix advertisements
-    summaries = extract_summary_lsas(lsdb_text)
+    # Detect prefix advertisements + LSA type
+    prefix_ads = extract_prefix_advertisements(lsdb_text, target_prefix)
 
     advertisements = []
+    lsa_type = None
 
-    for entry in summaries:
+    for entry in prefix_ads:
+        advertisements.append(entry["advertising_router"])
+        lsa_type = entry["lsa_type"]
 
-        if target_prefix in entry["prefix"]:
-            advertisements.append(entry["advertising_router"])
-
-    # Extract routers from LSDB
+    # Extract router nodes
     routers = extract_router_nodes(lsdb_text)
 
-    # Build graph
+    # Build topology graph
     G = nx.Graph()
 
     for r in routers:
         G.add_node(r)
 
+    # Extract router links
     links = extract_router_links(lsdb_text)
 
     for a, b, metric in links:
         G.add_edge(a, b, weight=metric)
 
-
-
-    # Compute paths from source router to advertising routers
+    # Compute SPF paths
     paths = []
 
     for r in advertisements:
 
         try:
+
             path = nx.shortest_path(G, router_id, r, weight="weight")
             cost = nx.shortest_path_length(G, router_id, r, weight="weight")
             hops = len(path) - 1
 
-        except:
+        except nx.NetworkXNoPath:
+
             path = None
             cost = None
             hops = None
@@ -57,12 +63,26 @@ def analyze_prefix(lsdb_text, target_prefix):
             "path": path
         })
 
-    # sort routers by lowest SPF cost
-    paths = sorted(paths, key=lambda x: (x["cost"] if x["cost"] is not None else 999999))
+    # Sort by SPF cost
+    # paths = sorted(
+    #     paths,
+    #     key=lambda x: (x["cost"] if x["cost"] is not None else 999999)
+    # )
+    #paths.sort(key=lambda x: x.get("cost") if x.get("cost") is not None else 999999)
+
+    def safe_cost(entry):
+        cost = entry.get("cost")
+        if isinstance(cost, (int, float)):
+            return cost
+        return 999999
+
+
+    paths = sorted(paths, key=safe_cost)
 
     return {
         "source_router": router_id,
         "prefix": target_prefix,
+        "lsa_type": lsa_type,
         "occurrences": len(advertisements),
         "paths": paths
     }
@@ -73,15 +93,23 @@ if __name__ == "__main__":
     with open("sample_lsdb.txt") as f:
         data = f.read()
 
-    result = analyze_prefix(data, "10.70.241.128")
+    prefix = "10.199.246.8"
 
-    #print(result)
+    result = analyze_prefix(data, prefix)
+
     print("\nOSPF PREFIX ANALYSIS")
     print("--------------------")
 
     print("Source Router :", result["source_router"])
     print("Prefix        :", result["prefix"])
+    print("Type          :", result["lsa_type"])
     print("Advertisements:", result["occurrences"])
+
+    # Handle prefix not found
+    if not result["paths"]:
+
+        print("\nNo advertisement found for this prefix in LSDB.")
+        exit()
 
     print("\nBest Path Candidate")
 
@@ -91,12 +119,20 @@ if __name__ == "__main__":
     print("Cost   :", best["cost"])
     print("Hops   :", best["hops"])
 
+    print("\nBest Path")
+
+    if best["path"]:
+        print(" -> ".join(best["path"]))
+
     print("\nAll Advertising Routers (sorted by SPF cost)\n")
 
     for entry in result["paths"]:
+
         print(
             entry["router"],
             " cost:", entry["cost"],
             " hops:", entry["hops"]
         )
 
+        if entry["path"]:
+            print("   path:", " -> ".join(entry["path"]))

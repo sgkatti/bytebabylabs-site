@@ -83,3 +83,51 @@ def extract_router_links(text):
             current_neighbor = None
 
     return edges
+
+def extract_prefix_advertisements(text, target_prefix):
+
+    entries = []
+    current_lsa = None
+    advertising_router = None
+
+    for line in text.splitlines():
+
+        if "LS Type:" in line:
+
+            if "router-LSA" in line:
+                current_lsa = "Type-1"
+
+            elif "summary-LSA" in line:
+                current_lsa = "Type-3"
+
+            elif "AS-external-LSA" in line or "AS External" in line:
+                current_lsa = "Type-5"
+
+        if "Advertising Router:" in line:
+            advertising_router = line.split(":")[1].strip()
+
+        if target_prefix in line:
+
+            entries.append({
+                "prefix": target_prefix,
+                "lsa_type": current_lsa,
+                "advertising_router": advertising_router
+            })
+
+    return entries
+
+def detect_prefix_type(text, prefix):
+
+    if "Type-5" in text or "AS External Link States" in text:
+        if prefix in text:
+            return "Type-5"
+
+    if "Summary Net Link States" in text:
+        if prefix in text:
+            return "Type-3"
+
+    if "Router Link States" in text:
+        if prefix in text:
+            return "Type-1"
+
+    return "Unknown"
