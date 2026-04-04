@@ -167,13 +167,19 @@ If there is a network problem you frequently analyze manually,
 describe it here. We may convert it into a new tool.
 </p>
 
-<textarea placeholder="Example: A tool that visualizes ECMP path changes during OSPF convergence"></textarea>
+<label>Email address</label><br>
+<input type="email" id="commentEmail" placeholder="you@example.com" style="width:100%;background:#000;color:#00ff00;border:1px solid #00ff00;padding:10px;margin-top:10px;">
+
+<label>Comment</label><br>
+<textarea id="commentInput" placeholder="Example: A tool that visualizes ECMP path changes during OSPF convergence"></textarea>
 
 <br>
 
-<button onclick="alert('Feedback submission coming soon')">
+<button onclick="submitComment()">
 Submit Idea
 </button>
+
+<div id="commentResponse" style="margin-top:12px;font-size:14px;opacity:0.9;color:#00ff00;"></div>
 
 </div>
 
@@ -208,7 +214,37 @@ ByteBabyLabs – Early prototypes under active development.
 <script>
 
 function openTool(tool){
-window.location.href=tool
+    window.location.href = tool
+}
+
+async function submitComment(){
+    const email = document.getElementById('commentEmail').value.trim();
+    const comment = document.getElementById('commentInput').value.trim();
+    const responseEl = document.getElementById('commentResponse');
+
+    if(!email || !comment){
+        responseEl.innerText = 'Please enter both email and comment.';
+        return;
+    }
+
+    try {
+        const resp = await fetch('/api/comments', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, comment })
+        });
+
+        if(!resp.ok){
+            throw new Error('Unable to submit comment.');
+        }
+
+        responseEl.innerText = 'Thank you! Your comment has been recorded.';
+        document.getElementById('commentEmail').value = '';
+        document.getElementById('commentInput').value = '';
+    } catch (err) {
+        responseEl.innerText = 'Error submitting comment. Please try again later.';
+        console.error(err);
+    }
 }
 
 </script>
