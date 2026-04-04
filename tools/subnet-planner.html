@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Subnet / Prefix Planner</title>
+<style>
+body {
+    font-family: 'Courier New', monospace;
+    background: black;
+    color: #00ff00;
+    margin: 40px;
+    line-height: 1.6;
+}
+h1 {
+    font-size: 40px;
+}
+input, button {
+    background: #111;
+    color: #00ff00;
+    border: 1px solid #00ff00;
+    padding: 10px;
+    margin: 10px 0;
+}
+button {
+    cursor: pointer;
+}
+button:hover {
+    background: #222;
+}
+.result {
+    margin-top: 20px;
+    font-size: 16px;
+}
+</style>
+</head>
+<body>
+<h1>Subnet / Prefix Planner</h1>
+<p>Plan subnets by entering a base prefix and the number of hosts per subnet.</p>
+
+<label>Enter base prefix (e.g., 192.168.1.0/24):</label><br>
+<input type="text" id="prefixInput" placeholder="192.168.1.0/24"><br>
+<label>Enter number of hosts per subnet:</label><br>
+<input type="number" id="hostsInput" placeholder="1" min="1"><br>
+<button onclick="planSubnets()">Plan Subnets</button>
+<div class="result" id="result"></div>
+
+<script>
+function ipToNum(ip) {
+    return ip.split('.').reduce((a, b) => (a << 8) + +b, 0) >>> 0;
+}
+
+function numToIp(num) {
+    return [(num >>> 24) & 255, (num >>> 16) & 255, (num >>> 8) & 255, num & 255].join('.');
+}
+
+function getMaskForHosts(hosts) {
+    if (hosts === 1) return 32;
+    let bits = Math.ceil(Math.log2(hosts + 2)); // +2 for network and broadcast
+    return 32 - bits;
+}
+
+function planSubnets() {
+    let prefixStr = document.getElementById('prefixInput').value;
+    let hosts = parseInt(document.getElementById('hostsInput').value);
+    if (!prefixStr || isNaN(hosts) || hosts < 1) {
+        document.getElementById('result').innerText = 'Invalid input. Please enter a valid prefix and number of hosts.';
+        return;
+    }
+    let [ipStr, maskStr] = prefixStr.split('/');
+    let baseMask = parseInt(maskStr);
+    let requiredMask = getMaskForHosts(hosts);
+    if (requiredMask < baseMask) {
+        document.getElementById('result').innerText = 'Required mask is smaller than base mask. Cannot fit.';
+        return;
+    }
+    let numSubnets = Math.pow(2, requiredMask - baseMask);
+    let startNum = ipToNum(ipStr);
+    let increment = Math.pow(2, 32 - requiredMask);
+    let result = `<p>Base Prefix: ${prefixStr}</p>`;
+    result += `<p>Hosts per subnet: ${hosts}</p>`;
+    result += `<p>Required mask: /${requiredMask}</p>`;
+    result += `<p>Number of subnets: ${numSubnets}</p>`;
+    result += '<p>Subnets:</p><ul>';
+    for (let i = 0; i < numSubnets; i++) {
+        let subnetIp = numToIp(startNum + i * increment);
+        result += `<li>${subnetIp}/${requiredMask}</li>`;
+        if (i > 100) { // Limit display
+            result += '<li>... (truncated)</li>';
+            break;
+        }
+    }
+    result += '</ul>';
+    document.getElementById('result').innerHTML = result;
+}
+</script>
+</body>
+</html>

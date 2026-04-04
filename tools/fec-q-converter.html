@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Pre-FEC BER ↔ Q Converter</title>
+<style>
+body {
+    font-family: 'Courier New', monospace;
+    background: black;
+    color: #00ff00;
+    margin: 40px;
+    line-height: 1.6;
+}
+h1 {
+    font-size: 40px;
+}
+input, button {
+    background: #111;
+    color: #00ff00;
+    border: 1px solid #00ff00;
+    padding: 10px;
+    margin: 10px 0;
+}
+button {
+    cursor: pointer;
+}
+button:hover {
+    background: #222;
+}
+.result {
+    margin-top: 20px;
+    font-size: 18px;
+}
+</style>
+</head>
+<body>
+<h1>Pre-FEC BER ↔ Q Converter</h1>
+<p>Convert between Pre-FEC BER and Q factor (in dB).</p>
+
+<h2>BER to Q</h2>
+<label>Enter Pre-FEC BER (e.g., 1e-3):</label><br>
+<input type="text" id="berInput" placeholder="1e-3"><br>
+<button onclick="convertBerToQ()">Convert</button>
+<div class="result" id="berToQResult"></div>
+
+<h2>Q to BER</h2>
+<label>Enter Q (dB):</label><br>
+<input type="text" id="qInput" placeholder="10"><br>
+<button onclick="convertQToBer()">Convert</button>
+<div class="result" id="qToBerResult"></div>
+
+<script>
+// Approximation functions
+function erf(z) {
+    let t = 1 / (1 + 0.5 * Math.abs(z));
+    let tau = t * Math.exp(-z*z - 1.26551223 + 1.00002368*t + 0.37409196*t*t + 0.09678418*t*t*t - 0.18628806*t*t*t*t + 0.27886807*t*t*t*t*t - 1.13520398*t*t*t*t*t*t + 1.48851587*t*t*t*t*t*t*t - 0.82215223*t*t*t*t*t*t*t*t + 0.17087277*t*t*t*t*t*t*t*t*t);
+    return z >= 0 ? 1 - tau : tau - 1;
+}
+
+function erfc(z) {
+    return 1 - erf(z);
+}
+
+function erfinv(x) {
+    if (x < -1 || x > 1) return NaN;
+    if (x == 1) return Infinity;
+    if (x == -1) return -Infinity;
+    let y = Math.abs(x);
+    let t = Math.sqrt(-2 * Math.log((1 - y)/2));
+    let u = t - (2.515517 + 0.802853 * t + 0.010328 * t*t) / (1 + 1.432788 * t + 0.189269 * t*t + 0.001308 * t*t*t);
+    return x < 0 ? -u : u;
+}
+
+function erfcinv(y) {
+    return erfinv(1 - y);
+}
+
+function convertBerToQ() {
+    let berStr = document.getElementById('berInput').value;
+    let ber = parseFloat(berStr);
+    if (isNaN(ber) || ber <= 0 || ber >= 1) {
+        document.getElementById('berToQResult').innerText = 'Invalid BER value. Enter a number between 0 and 1 in exp format.';
+        return;
+    }
+    let Q_linear = Math.sqrt(2) * erfcinv(2 * ber);
+    let Q_dB = 20 * Math.log10(Q_linear);
+    document.getElementById('berToQResult').innerText = `Q = ${Q_dB.toFixed(2)} dB`;
+}
+
+function convertQToBer() {
+    let qStr = document.getElementById('qInput').value;
+    let Q_dB = parseFloat(qStr);
+    if (isNaN(Q_dB) || Q_dB <= 0) {
+        document.getElementById('qToBerResult').innerText = 'Invalid Q value. Enter a positive number.';
+        return;
+    }
+    let Q_linear = Math.pow(10, Q_dB / 20);
+    let ber = 0.5 * erfc(Q_linear / Math.sqrt(2));
+    document.getElementById('qToBerResult').innerText = `Pre-FEC BER = ${ber.toExponential(2)}`;
+}
+</script>
+</body>
+</html>
