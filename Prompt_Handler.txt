@@ -1,0 +1,381 @@
+You are an award-winning UI/UX designer, product strategist, and senior Next.js frontend engineer.
+
+Your task is to completely redesign my existing website https://bytebabylabs.com into a world-class premium engineering platform.
+
+DO NOT create a hacker-themed website.
+
+Instead, design it as if Cloudflare, Vercel, OpenAI, Stripe and Apple collaborated on a website specifically for telecom, optical networking and submarine cable engineers.
+
+The feeling should be:
+
+• Premium
+• Minimal
+• Confident
+• Modern
+• Fast
+• Technical
+• Elegant
+• Engineering-first
+
+The design should immediately communicate trust, expertise and innovation.
+
+========================================================
+ABOUT BYTEBABYLABS
+========================================================
+
+ByteBabyLabs is an engineering platform focused on modern telecom networks.
+
+It provides:
+
+• Optical Networking tools
+• DWDM Engineering calculators
+• OTN tools
+• OSPF and routing analyzers
+• Network visualization
+• PM File analyzers
+• Fiber engineering calculators
+• OTDR analysis
+• Submarine cable simulators
+• AI-powered engineering assistants
+• Python automation tools
+• Learning resources
+• Interactive engineering labs
+
+The audience includes:
+
+• Network Engineers
+• Optical Engineers
+• Telecom Architects
+• Submarine Engineers
+• Service Providers
+• Data Center Engineers
+• Cloud Network Engineers
+• Students
+
+========================================================
+VISUAL STYLE
+========================================================
+
+Dark Mode only.
+
+Background:
+Almost black.
+
+Accent colors:
+Electric Blue
+Cyan
+Indigo
+Soft White
+
+No Matrix green.
+
+No hacker fonts.
+
+Use premium typography similar to OpenAI or Apple.
+
+Large whitespace.
+
+Rounded cards.
+
+Glassmorphism only where appropriate.
+
+Soft glowing gradients.
+
+Smooth micro animations.
+
+========================================================
+HERO SECTION
+========================================================
+
+Create an immersive hero section.
+
+Background should include:
+
+Animated globe
+
+Submarine cable routes
+
+Glowing optical paths
+
+Network nodes
+
+Light pulses travelling through cables
+
+Headline:
+
+"Engineering the Future of Networks"
+
+Subheadline:
+
+"AI-powered tools, simulations and engineering resources for optical, telecom and submarine network professionals."
+
+Primary button:
+
+Explore Tools
+
+Secondary button:
+
+Launch Interactive Lab
+
+========================================================
+FEATURED TOOLS
+========================================================
+
+Create beautiful product cards for:
+
+OSPF Analyzer
+
+PM File Analyzer
+
+OTDR Visualizer
+
+Optical Power Budget Calculator
+
+OSNR Calculator
+
+Latency Calculator
+
+Fiber Loss Calculator
+
+Submarine Cable Simulator
+
+Each card should have
+
+Icon
+
+Short description
+
+Animated hover
+
+Launch button
+
+========================================================
+INTERACTIVE SECTION
+========================================================
+
+Design an engineering playground.
+
+Examples:
+
+Paste OSPF LSDB
+
+↓
+
+Visual topology
+
+Upload PM file
+
+↓
+
+Automatic KPI analysis
+
+Draw Fiber Route
+
+↓
+
+Loss estimation
+
+========================================================
+SUBMARINE SECTION
+========================================================
+
+Create a spectacular submarine cable section.
+
+Include:
+
+Animated world map
+
+Real submarine cable routes
+
+Landing stations
+
+Cable names
+
+Repeaters
+
+Power feed stations
+
+Signal animation
+
+Include links to public submarine cable datasets such as TeleGeography's submarine cable map and other publicly available resources. Present them as external references, not embedded copyrighted content.
+
+Allow future filtering by:
+
+Region
+
+Operator
+
+Cable age
+
+Capacity
+
+Technology
+
+========================================================
+ENGINEERING KNOWLEDGE HUB
+========================================================
+
+Create cards for:
+
+Latest Articles
+
+Tutorials
+
+Whitepapers
+
+Standards
+
+Python Scripts
+
+Open Source Projects
+
+========================================================
+AI ENGINEER
+========================================================
+
+Design a section called:
+
+Ask ByteBaby AI
+
+Example questions:
+
+How does Raman amplification work?
+
+Explain OSNR.
+
+Analyze this PM file.
+
+Why is my pre-FEC increasing?
+
+========================================================
+ABOUT
+========================================================
+
+Professional founder section.
+
+Mention over 23 years of experience designing carrier-scale optical and transport networks across hyperscale and telecom environments.
+
+Experience includes long-haul, metro, DWDM, submarine systems and automation.
+
+Do NOT make it look like a personal blog.
+
+It should feel like the founder of an engineering company.
+
+========================================================
+FOOTER
+========================================================
+
+Links:
+
+Tools
+
+Labs
+
+Learning
+
+Documentation
+
+GitHub
+
+Roadmap
+
+Contact
+
+========================================================
+ANIMATIONS
+========================================================
+
+Use tasteful animations only.
+
+Network nodes pulse.
+
+Fiber links glow.
+
+Cards float slightly.
+
+Buttons ripple.
+
+World rotates slowly.
+
+Scrolling reveals sections elegantly.
+
+========================================================
+TECH STACK
+========================================================
+
+Generate production-quality code using:
+
+Next.js 15
+
+React
+
+Tailwind CSS
+
+TypeScript
+
+Framer Motion
+
+Lucide Icons
+
+Three.js (only where appropriate)
+
+Responsive.
+
+Accessible.
+
+SEO optimized.
+
+Performance optimized.
+
+========================================================
+OUTPUT
+========================================================
+
+Produce:
+
+1. Complete homepage design.
+
+2. Component hierarchy.
+
+3. Folder structure.
+
+4. All React components.
+
+5. Tailwind styling.
+
+6. Animation implementation.
+
+7. Responsive layout.
+
+8. Beautiful placeholder illustrations.
+
+9. Ready-to-run production code.
+
+The code should be elegant enough that it could be deployed immediately. Use these websites only for inspiration:
+
+Cloudflare
+- clarity
+- trust
+- technical storytelling
+
+OpenAI
+- typography
+- spacing
+- subtle animations
+
+Vercel
+- developer-first UX
+- dark theme
+- component layout
+
+Stripe
+- gradients
+- section transitions
+- premium feel
+
+Apple
+- whitespace
+- motion
+- visual hierarchy
+
+Do NOT copy any branding, assets, colors, or layouts. Create a unique design inspired by the same principles.
