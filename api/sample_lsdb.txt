@@ -1,0 +1,14 @@
+LS age: 123
+LS Type: Type-3 Summary Links
+Link State ID: 10.10.10.0
+Advertising Router: 1.1.1.1
+
+LS age: 90
+LS Type: Type-5 AS External
+Link State ID: 10.10.10.0
+Advertising Router: 2.2.2.2
+
+LS age: 44
+LS Type: Router Links
+Link State ID: 10.20.20.0
+Advertising Router: 3.3.3.3

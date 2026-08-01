@@ -1,0 +1,5 @@
+new_landing/node_modules/
+new_landing/.next/
+new_landing/out/
+new_landing/.turbo/
+*.log
