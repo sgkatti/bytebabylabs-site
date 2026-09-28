@@ -1,4 +1,4 @@
-const API=window.SOCIETY_API_URL||"http://localhost:8000";const $=id=>document.getElementById(id);const state={user:null,tasks:[]};
+const API=window.SOCIETY_API_URL||"https://api-tasks.bytebabylabs.com";const $=id=>document.getElementById(id);const state={user:null,tasks:[]};
 async function api(path,o={}){const r=await fetch(API+path,{credentials:"include",headers:{"Content-Type":"application/json",...(o.headers||{})},...o});if(!r.ok){let m="Request failed";try{const x=await r.json();m=x.detail||m}catch{}throw Error(m)}return r.status===204?null:r.json()}
 function showApp(){$("login-view").hidden=true;$("app-view").hidden=false;$("user-name").textContent=state.user.display_name;$("user-role").textContent=state.user.role;$("create-panel").hidden=state.user.role==="MANAGER"}
 function esc(v){return String(v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]))}
