@@ -1,7 +1,7 @@
 from datetime import datetime
 from enum import Enum
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, DateTime, Enum as SAEnum, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -34,7 +34,7 @@ class User(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     username: Mapped[str] = mapped_column(String(100), unique=True, index=True)
     display_name: Mapped[str] = mapped_column(String(200))
-    role: Mapped[Role] = mapped_column(String(20))
+    role: Mapped[Role] = mapped_column(SAEnum(Role, name="user_role"), nullable=False)
     password_hash: Mapped[str] = mapped_column(Text)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
@@ -54,8 +54,10 @@ class Task(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     title: Mapped[str] = mapped_column(String(200))
     description: Mapped[str] = mapped_column(Text, default="")
-    priority: Mapped[Priority] = mapped_column(String(20), default=Priority.MEDIUM)
-    status: Mapped[TaskStatus] = mapped_column(String(30), default=TaskStatus.ASSIGNED, index=True)
+    priority: Mapped[Priority] = mapped_column(SAEnum(Priority, name="task_priority"), nullable=False)
+    status: Mapped[TaskStatus] = mapped_column(
+        SAEnum(TaskStatus, name="task_status"), nullable=False, index=True
+    )
     due_date: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     created_by_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
     assigned_to_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
