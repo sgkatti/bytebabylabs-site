@@ -1,4 +1,5 @@
 from fastapi import Depends, FastAPI, HTTPException, Request, status
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 from starlette.middleware.sessions import SessionMiddleware
@@ -13,7 +14,7 @@ from app.schemas import LoginRequest, TaskComplete, TaskCreate, TaskOut, TaskRev
 
 settings = get_settings()
 
-app = FastAPI(title="Society Task Platform API", version="0.2.0")
+app = FastAPI(title="Society Task Platform API", version="0.3.0")
 
 app.add_middleware(
     SessionMiddleware,
@@ -36,6 +37,15 @@ app.add_middleware(
 @app.get("/health", tags=["system"])
 def health() -> dict[str, str]:
     return {"status": "ok", "service": "society-task-platform"}
+
+
+@app.middleware("http")
+async def validate_origin(request: Request, call_next):
+    if request.method in {"POST", "PUT", "PATCH", "DELETE"}:
+        origin = request.headers.get("origin")
+        if origin and origin.rstrip("/") != settings.frontend_origin.rstrip("/"):
+            return JSONResponse(status_code=403, content={"detail": "Origin not allowed"})
+    return await call_next(request)
 
 
 @app.post("/auth/login", response_model=UserOut)
