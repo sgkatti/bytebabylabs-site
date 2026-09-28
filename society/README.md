@@ -65,3 +65,15 @@ society/
 - Sprint 3: frontend dashboard and task workflow.
 - Sprint 4: audit/review workflow, validation, hardening and UX polish.
 - Sprint 5: deployment, DNS, production smoke tests and operational documentation.
+
+
+## Local backend
+
+From society/backend:
+
+1. Set DATABASE_URL, SESSION_SECRET and FRONTEND_ORIGIN.
+2. Run migrations with: alembic upgrade head
+3. Provision the four controlled identities with: python -m app.bootstrap
+4. Start the API with: uvicorn app.main:app --reload
+
+The four provisioning identities map to Chairman, Secretary, Treasurer and Manager respectively. Password values are runtime secrets and must never be committed.
