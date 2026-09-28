@@ -1,12 +1,13 @@
 from fastapi import Depends, FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
+
 from starlette.middleware.sessions import SessionMiddleware
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.auth import authenticate, require_committee, require_manager, require_user
 from app.config import get_settings
-from app.database import Base, engine, get_db
+from app.database import get_db
 from app.models import AuditEvent, Role, Task, TaskStatus, User
 from app.schemas import LoginRequest, TaskComplete, TaskCreate, TaskOut, TaskReview, UserOut
 
@@ -30,11 +31,6 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["Content-Type"],
 )
-
-
-@app.on_event("startup")
-def startup() -> None:
-    Base.metadata.create_all(bind=engine)
 
 
 @app.get("/health", tags=["system"])
@@ -149,3 +145,23 @@ def review_task(task_id: int, payload: TaskReview, user: User = Depends(require_
     db.commit()
     db.refresh(task)
     return task
+
+@app.get("/tasks/{task_id}/audit")
+def task_audit(task_id: int, user: User = Depends(require_committee), db: Session = Depends(get_db)) -> list[dict]:
+    if not db.get(Task, task_id):
+        raise HTTPException(status_code=404, detail="Task not found")
+    events = db.scalars(
+        select(AuditEvent).where(AuditEvent.task_id == task_id).order_by(AuditEvent.created_at.asc())
+    ).all()
+    return [
+        {
+            "id": event.id,
+            "task_id": event.task_id,
+            "actor_id": event.actor_id,
+            "event_type": event.event_type,
+            "old_value": event.old_value,
+            "new_value": event.new_value,
+            "created_at": event.created_at,
+        }
+        for event in events
+    ]
