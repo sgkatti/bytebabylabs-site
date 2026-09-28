@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: society-task-platform
+    runtime: python
+    rootDir: society/backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: alembic upgrade head && python -m app.bootstrap && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: SESSION_SECRET
+        sync: false
+      - key: FRONTEND_ORIGIN
+        sync: false
+      - key: SECURE_COOKIES
+        value: "true"
+      - key: SESSION_MAX_AGE
+        value: "43200"
