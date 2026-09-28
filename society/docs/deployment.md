@@ -19,6 +19,10 @@ The startup command runs migrations, bootstraps the four society accounts, and s
 
 Publish society/frontend/ as a static site. Configure the API origin in app.js before production deployment, or provide an environment-specific wrapper that defines window.SOCIETY_API_URL.
 
+## API domain
+
+Use a Render custom domain such as api-tasks.bytebabylabs.com for the FastAPI service. This keeps the frontend and API under the same registrable site while retaining separate origins for CORS and security policy.
+
 ## DNS
 
 Create the custom domain tasks.bytebabylabs.com in the Cloudflare Pages project. Do not rely on an unassociated CNAME alone.
