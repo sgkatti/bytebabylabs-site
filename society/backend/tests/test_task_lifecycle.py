@@ -5,7 +5,7 @@ from sqlalchemy import delete
 from app.auth import hash_password
 from app.database import Base, SessionLocal, engine
 from app.main import app
-from app.models import AuditEvent, Role, User
+from app.models import AuditEvent, Role, Task, User
 
 
 @pytest.fixture(autouse=True)
@@ -13,6 +13,7 @@ def database():
     Base.metadata.create_all(bind=engine)
     db = SessionLocal()
     db.execute(delete(AuditEvent))
+    db.execute(delete(Task))
     db.execute(delete(User))
     db.add_all([
         User(username="chair", display_name="Chairman", role=Role.CHAIRMAN, password_hash=hash_password("chair-pass")),
