@@ -48,6 +48,11 @@ def login(payload: LoginRequest, request: Request, db: Session = Depends(get_db)
     return user
 
 
+@app.get("/users/manager", response_model=list[UserOut])
+def list_managers(user: User = Depends(require_committee), db: Session = Depends(get_db)) -> list[User]:
+    return list(db.scalars(select(User).where(User.role == Role.MANAGER, User.is_active.is_(True))).all())
+
+
 @app.post("/auth/logout")
 def logout(request: Request) -> dict[str, str]:
     request.session.clear()
