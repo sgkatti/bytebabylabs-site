@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Air String Synth // ByteBabyLabs</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+  <!-- MediaPipe Hands & Camera Utils -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: { extend: { fontFamily: { sans: ['Inter', 'sans-serif'], mono: ['JetBrains Mono', 'monospace'] } } }
+    }
+  </script>
+  <style>
+    body { background-color: #07090e; color: #f8fafc; overflow-x: hidden; }
+    .glass-panel { background: rgba(15, 23, 42, 0.72); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid rgba(148, 163, 184, 0.14); }
+    .neon-glow { box-shadow: 0 0 24px rgba(56, 189, 248, 0.25); }
+    input[type="range"] { -webkit-appearance: none; appearance: none; background: rgba(51, 65, 85, 0.7); height: 6px; border-radius: 999px; }
+    input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 16px; height: 16px; border-radius: 50%; background: #38bdf8; cursor: pointer; box-shadow: 0 0 10px rgba(56, 189, 248, 0.8); }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between selection:bg-sky-500/30 selection:text-sky-200">
+  <header class="w-full border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-md sticky top-0 z-30">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <a href="/" title="Back to ByteBabyLabs Home" class="flex items-center gap-2.5 group">
+          <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-sky-400 via-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-sky-500/20 group-hover:scale-105 transition-transform">
+            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" /></svg>
+          </div>
+          <div>
+            <div class="flex items-center gap-2"><span class="font-bold tracking-tight text-slate-100 text-base sm:text-lg">ByteBabyLabs</span><span class="text-slate-600 font-mono text-sm">//</span><span class="font-mono text-xs sm:text-sm font-semibold text-sky-400">Air String Synth</span></div>
+            <p class="text-[11px] text-slate-400 hidden sm:block">Dual-Hand Computer Vision & WebAudio Synthesizer</p>
+          </div>
+        </a>
+      </div>
+      <div class="flex items-center gap-2 sm:gap-4">
+        <div id="statusBadge" class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900 border border-slate-800 text-xs font-mono text-slate-400"><span id="statusDot" class="w-2 h-2 rounded-full bg-slate-500"></span><span id="statusText">CAMERA STANDBY</span></div>
+        <a href="/" class="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-xs font-medium text-slate-300 transition-colors">&larr; Home</a>
+      </div>
+    </div>
+  </header>
+  <main class="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 py-4 flex flex-col gap-4">
+    <section class="glass-panel rounded-2xl p-3 sm:p-4 flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
+      <div class="flex flex-col sm:flex-row sm:items-center gap-2.5">
+        <label for="scaleSelect" class="text-xs font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1.5 shrink-0"><svg class="w-4 h-4 text-sky-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2z" /></svg>Musical Scale</label>
+        <select id="scaleSelect" class="bg-slate-900/90 border border-slate-700/80 text-slate-100 text-sm rounded-xl px-3.5 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500/50 font-medium cursor-pointer">
+          <option value="pentatonic_c" selected>C Major Pentatonic (In-Tune)</option><option value="major_c">C Major Scale (C3 – C5)</option><option value="minor_pent_a">A Minor Pentatonic (A2 – A4)</option><option value="raag_yaman">Indian Raag Yaman (Kalyan)</option><option value="continuous">Continuous / Fretless (Hz)</option>
+        </select>
+      </div>
+      <div class="flex items-center justify-around sm:justify-center gap-4 sm:gap-8 bg-slate-950/60 border border-slate-800/80 rounded-xl px-4 py-2">
+        <div class="text-center"><div class="text-[10px] font-mono uppercase tracking-wider text-slate-500">Note</div><div id="hudNote" class="text-lg sm:text-xl font-bold font-mono text-sky-400">--</div></div><div class="h-7 w-px bg-slate-800"></div>
+        <div class="text-center"><div class="text-[10px] font-mono uppercase tracking-wider text-slate-500">Pitch</div><div id="hudFreq" class="text-lg sm:text-xl font-bold font-mono text-emerald-400">-- Hz</div></div><div class="h-7 w-px bg-slate-800"></div>
+        <div class="text-center"><div class="text-[10px] font-mono uppercase tracking-wider text-slate-500">Length</div><div id="hudLen" class="text-lg sm:text-xl font-bold font-mono text-amber-400">-- px</div></div>
+      </div>
+      <div class="flex flex-wrap items-center justify-between sm:justify-end gap-3">
+        <div class="flex items-center gap-2 bg-slate-900/70 border border-slate-800 rounded-xl px-3 py-1.5"><span class="text-xs text-slate-400 font-medium whitespace-nowrap">Pinch Dist:</span><input id="pinchSlider" type="range" min="25" max="85" value="48" class="w-20 sm:w-24" title="Adjust pinch detection threshold" /><span id="pinchVal" class="text-xs font-mono text-slate-300 w-7 text-right">48</span></div>
+        <button id="testPluckBtn" type="button" class="px-3.5 py-2 rounded-xl bg-indigo-500/20 hover:bg-indigo-500/30 border border-indigo-500/40 text-indigo-300 text-xs font-semibold transition-all active:scale-95 cursor-pointer">Test Pluck</button>
+        <button id="resetStringBtn" type="button" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-semibold transition-all active:scale-95 cursor-pointer">Clear String</button>
+      </div>
+    </section>
+    <section class="relative w-full flex-1 min-h-[420px] sm:min-h-[540px] rounded-2xl overflow-hidden border border-slate-800 bg-slate-950 shadow-2xl flex items-center justify-center">
+      <video id="webcamVideo" class="hidden" playsinline autoplay muted></video>
+      <canvas id="outputCanvas" class="w-full h-full object-cover block"></canvas>
+      <div id="startOverlay" class="absolute inset-0 z-20 bg-slate-950/85 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center">
+        <div class="max-w-lg w-full glass-panel rounded-3xl p-6 sm:p-8 neon-glow border border-sky-500/20">
+          <div class="w-16 h-16 mx-auto mb-5 rounded-2xl bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-sky-500/30"><svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg></div>
+          <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-white mb-2">Play Music in Thin Air</h1>
+          <p class="text-sm text-slate-300 mb-6 leading-relaxed">Pinch your thumb and index finger on both hands to stretch a virtual string across your screen, release to lock it, and pluck it with a single fingertip.</p>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-left mb-7">
+            <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-3"><div class="text-sky-400 font-mono text-xs font-bold mb-1">01 // STRETCH</div><p class="text-xs text-slate-400">Pinch thumb &amp; index on <strong class="text-slate-200">both hands</strong> to spawn &amp; tune the string.</p></div>
+            <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-3"><div class="text-amber-400 font-mono text-xs font-bold mb-1">02 // LOCK</div><p class="text-xs text-slate-400">Open your fingers to <strong class="text-slate-200">anchor</strong> the string in mid-air.</p></div>
+            <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-3"><div class="text-emerald-400 font-mono text-xs font-bold mb-1">03 // PLUCK</div><p class="text-xs text-slate-400">Swipe <strong class="text-slate-200">one index finger</strong> across the string to play.</p></div>
+          </div>
+          <button id="startCameraBtn" type="button" class="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-semibold text-base shadow-lg shadow-sky-500/25 transition-all active:scale-[0.98] flex items-center justify-center gap-2.5 cursor-pointer"><svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg><span>Start Camera &amp; Audio Engine</span></button>
+          <p id="errorMessage" class="hidden mt-4 text-xs text-rose-400 bg-rose-950/60 border border-rose-800/60 rounded-xl p-3"></p>
+          <p class="mt-4 text-[11px] text-slate-500">100% client-side processing. Your camera feed never leaves your device.</p>
+        </div>
+      </div>
+      <div id="liveHintPill" class="hidden absolute bottom-3 left-3 right-3 sm:right-auto z-10 glass-panel rounded-xl px-3.5 py-2 text-xs text-slate-300 flex items-center gap-2.5 pointer-events-none"><span id="hintIcon" class="w-2.5 h-2.5 rounded-full bg-sky-400 animate-pulse shrink-0"></span><span id="hintText">Pinch thumb &amp; index finger with both hands to create a string</span></div>
+    </section>
+  </main>
+  <footer class="w-full border-t border-slate-900 py-3 px-4 text-center text-xs text-slate-500">Built for <a href="/" class="text-slate-400 hover:text-sky-400 transition-colors font-medium">bytebabylabs.com</a> &bull; WebAudio &amp; MediaPipe Hand Tracking Experiment</footer>
+  <script>
+    (function () {
+      'use strict';
+      const SCALES = {
+        pentatonic_c: [{name:'C3',freq:130.81},{name:'D3',freq:146.83},{name:'E3',freq:164.81},{name:'G3',freq:196.00},{name:'A3',freq:220.00},{name:'C4',freq:261.63},{name:'D4',freq:293.66},{name:'E4',freq:329.63},{name:'G4',freq:392.00},{name:'A4',freq:440.00},{name:'C5',freq:523.25}],
+        major_c: [{name:'C3',freq:130.81},{name:'D3',freq:146.83},{name:'E3',freq:164.81},{name:'F3',freq:174.61},{name:'G3',freq:196.00},{name:'A3',freq:220.00},{name:'B3',freq:246.94},{name:'C4',freq:261.63},{name:'D4',freq:293.66},{name:'E4',freq:329.63},{name:'F4',freq:349.23},{name:'G4',freq:392.00},{name:'A4',freq:440.00},{name:'B4',freq:493.88},{name:'C5',freq:523.25}],
+        minor_pent_a: [{name:'A2',freq:110.00},{name:'C3',freq:130.81},{name:'D3',freq:146.83},{name:'E3',freq:164.81},{name:'G3',freq:196.00},{name:'A3',freq:220.00},{name:'C4',freq:261.63},{name:'D4',freq:293.66},{name:'E4',freq:329.63},{name:'G4',freq:392.00},{name:'A4',freq:440.00}],
+        raag_yaman: [{name:'Sa (C3)',freq:130.81},{name:'Re (D3)',freq:146.83},{name:'Ga (E3)',freq:164.81},{name:'Ma# (F#3)',freq:185.00},{name:'Pa (G3)',freq:196.00},{name:'Dha (A3)',freq:220.00},{name:'Ni (B3)',freq:246.94},{name:'Sa (C4)',freq:261.63},{name:'Re (D4)',freq:293.66},{name:'Ga (E4)',freq:329.63},{name:'Ma# (F#4)',freq:369.99},{name:'Pa (G4)',freq:392.00},{name:'Dha (A4)',freq:440.00},{name:'Ni (B4)',freq:493.88},{name:'Sa (C5)',freq:523.25}]
+      };
+      const NOTE_NAMES_12TET = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+      function freqToNearestNoteName(freq) {
+        const midi = Math.round(12 * Math.log2(freq / 440) + 69);
+        return NOTE_NAMES_12TET[((midi % 12) + 12) % 12] + (Math.floor(midi / 12) - 1);
+      }
+      let audioCtx = null;
+      function initAudio() {
+        if (!audioCtx) { const AudioContextClass = window.AudioContext || window.webkitAudioContext; audioCtx = new AudioContextClass(); }
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+      }
+      function playPluckedString(frequency) {
+        initAudio(); if (!audioCtx) return;
+        const now = audioCtx.currentTime, duration = 1.8;
+        const masterGain = audioCtx.createGain();
+        masterGain.gain.setValueAtTime(0.001, now); masterGain.gain.linearRampToValueAtTime(0.45, now + 0.012); masterGain.gain.exponentialRampToValueAtTime(0.0008, now + duration);
+        const filter = audioCtx.createBiquadFilter(); filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(Math.min(frequency * 7, 6500), now); filter.frequency.exponentialRampToValueAtTime(Math.max(frequency * 1.4, 220), now + duration * 0.85); filter.Q.value = 2.2;
+        filter.connect(masterGain); masterGain.connect(audioCtx.destination);
+        [{mult:1,type:'triangle',weight:0.65},{mult:2,type:'sine',weight:0.25},{mult:3,type:'sine',weight:0.10}].forEach(h => {
+          const osc = audioCtx.createOscillator(), partGain = audioCtx.createGain(); osc.type = h.type;
+          osc.frequency.setValueAtTime(frequency * h.mult, now); osc.frequency.exponentialRampToValueAtTime(frequency * h.mult * 0.997, now + 0.15);
+          partGain.gain.setValueAtTime(h.weight, now); partGain.gain.exponentialRampToValueAtTime(0.001, now + duration / h.mult);
+          osc.connect(partGain); partGain.connect(filter); osc.start(now); osc.stop(now + duration);
+        });
+      }
+      function getDistance(p1,p2) { return Math.hypot(p2.x-p1.x,p2.y-p1.y); }
+      function pointToSegmentDistance(px,py,x1,y1,x2,y2) {
+        const dx=x2-x1,dy=y2-y1,lenSq=dx*dx+dy*dy;
+        if(lenSq===0)return Math.hypot(px-x1,py-y1);
+        const t=Math.max(0,Math.min(1,((px-x1)*dx+(py-y1)*dy)/lenSq));
+        return Math.hypot(px-(x1+t*dx),py-(y1+t*dy));
+      }
+      function mapLengthToPitch(lengthPx,canvasWidth,scaleKey) {
+        const minLen=Math.max(60,canvasWidth*0.08),maxLen=Math.max(320,canvasWidth*0.72),clamped=Math.max(minLen,Math.min(maxLen,lengthPx));
+        const ratio=(clamped-minLen)/(maxLen-minLen);
+        if(scaleKey==='continuous'){const freq=523.25-ratio*(523.25-130.81);return{freq,noteName:freqToNearestNoteName(freq)};}
+        const notes=SCALES[scaleKey]||SCALES.pentatonic_c,idx=Math.min(notes.length-1,Math.max(0,Math.round((1-ratio)*(notes.length-1))));
+        return{freq:notes[idx].freq,noteName:notes[idx].name};
+      }
+      const videoEl=document.getElementById('webcamVideo'),canvasEl=document.getElementById('outputCanvas'),ctx=canvasEl.getContext('2d');
+      const startOverlay=document.getElementById('startOverlay'),startCameraBtn=document.getElementById('startCameraBtn'),errorMessage=document.getElementById('errorMessage'),liveHintPill=document.getElementById('liveHintPill'),hintText=document.getElementById('hintText'),hintIcon=document.getElementById('hintIcon');
+      const statusDot=document.getElementById('statusDot'),statusText=document.getElementById('statusText'),scaleSelect=document.getElementById('scaleSelect'),pinchSlider=document.getElementById('pinchSlider'),pinchVal=document.getElementById('pinchVal'),testPluckBtn=document.getElementById('testPluckBtn'),resetStringBtn=document.getElementById('resetStringBtn');
+      const hudNote=document.getElementById('hudNote'),hudFreq=document.getElementById('hudFreq'),hudLen=document.getElementById('hudLen');
+      let stringP1=null,stringP2=null,isPlucking=false,vibrationAmplitude=0,vibrationPhase=0,lastPluckPoint=null,pinchThreshold=parseInt(pinchSlider.value,10);
+      const PLUCK_THRESHOLD=24;
+      const HAND_CONNECTIONS=[[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17]];
+      pinchSlider.addEventListener('input',e=>{pinchThreshold=parseInt(e.target.value,10);pinchVal.textContent=pinchThreshold;});
+      resetStringBtn.addEventListener('click',()=>{stringP1=null;stringP2=null;isPlucking=false;vibrationAmplitude=0;updateHUD(null);});
+      testPluckBtn.addEventListener('click',()=>{initAudio();if(stringP1&&stringP2){const len=getDistance(stringP1,stringP2),pitch=mapLengthToPitch(len,canvasEl.width||1280,scaleSelect.value);playPluckedString(pitch.freq);vibrationAmplitude=26;vibrationPhase=0;}else{const pitch=mapLengthToPitch(300,canvasEl.width||1280,scaleSelect.value);playPluckedString(pitch.freq);updateHUD({noteName:pitch.noteName,freq:pitch.freq,length:300});}});
+      scaleSelect.addEventListener('change',()=>{if(stringP1&&stringP2){const len=getDistance(stringP1,stringP2),pitch=mapLengthToPitch(len,canvasEl.width,scaleSelect.value);updateHUD({noteName:pitch.noteName,freq:pitch.freq,length:len});}});
+      function updateHUD(data){if(!data){hudNote.textContent='--';hudFreq.textContent='-- Hz';hudLen.textContent='-- px';return;}hudNote.textContent=data.noteName;hudFreq.textContent=data.freq.toFixed(1)+' Hz';hudLen.textContent=Math.round(data.length)+' px';}
+      function drawHandSkeleton(landmarks,width,height,isPinching) {
+        ctx.save();ctx.lineWidth=2;ctx.strokeStyle=isPinching?'rgba(250, 204, 21, 0.7)':'rgba(56, 189, 248, 0.45)';
+        for(const [i,j] of HAND_CONNECTIONS){ctx.beginPath();ctx.moveTo(landmarks[i].x*width,landmarks[i].y*height);ctx.lineTo(landmarks[j].x*width,landmarks[j].y*height);ctx.stroke();}
+        for(let i=0;i<landmarks.length;i++){const lm=landmarks[i],x=lm.x*width,y=lm.y*height,isTip=i===4||i===8;ctx.beginPath();ctx.arc(x,y,isTip?5.5:2.5,0,Math.PI*2);ctx.fillStyle=isTip?(isPinching?'#facc15':'#38bdf8'):'rgba(226, 232, 240, 0.65)';ctx.fill();}
+        ctx.restore();
+      }
+      function drawVirtualString(p1,p2,isResizing,pitchInfo) {
+        ctx.save();let waveOffset=0;
+        if(vibrationAmplitude>0.2){waveOffset=Math.sin(vibrationPhase)*vibrationAmplitude;vibrationPhase+=0.85;vibrationAmplitude*=0.91;}else vibrationAmplitude=0;
+        let coreColor='#38bdf8',glowColor='rgba(56, 189, 248, 0.65)';
+        if(isResizing){coreColor='#facc15';glowColor='rgba(250, 204, 21, 0.75)';}else if(vibrationAmplitude>0.5){coreColor='#34d399';glowColor='rgba(52, 211, 153, 0.85)';}
+        ctx.shadowBlur=18;ctx.shadowColor=glowColor;ctx.strokeStyle=coreColor;ctx.lineWidth=isResizing?4.5:3.5;ctx.lineCap='round';
+        const midX=(p1.x+p2.x)/2,midY=(p1.y+p2.y)/2,dx=p2.x-p1.x,dy=p2.y-p1.y,dist=Math.hypot(dx,dy)||1,nx=-dy/dist,ny=dx/dist,ctrlX=midX+nx*waveOffset*1.6,ctrlY=midY+ny*waveOffset*1.6;
+        ctx.beginPath();ctx.moveTo(p1.x,p1.y);ctx.quadraticCurveTo(ctrlX,ctrlY,p2.x,p2.y);ctx.stroke();
+        ctx.shadowBlur=0;ctx.strokeStyle='rgba(255, 255, 255, 0.85)';ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(p1.x,p1.y);ctx.quadraticCurveTo(ctrlX,ctrlY,p2.x,p2.y);ctx.stroke();
+        [p1,p2].forEach(pt=>{ctx.beginPath();ctx.arc(pt.x,pt.y,11,0,Math.PI*2);ctx.fillStyle='rgba(15, 23, 42, 0.85)';ctx.fill();ctx.lineWidth=2.5;ctx.strokeStyle=coreColor;ctx.stroke();ctx.beginPath();ctx.arc(pt.x,pt.y,4,0,Math.PI*2);ctx.fillStyle='#ffffff';ctx.fill();});
+        const labelText=pitchInfo.noteName+'  •  '+Math.round(pitchInfo.freq)+' Hz';ctx.font='600 14px "JetBrains Mono", monospace';
+        const textMetrics=ctx.measureText(labelText),padX=12,boxW=textMetrics.width+padX*2,boxH=28,boxX=midX-boxW/2,boxY=midY-38;
+        ctx.fillStyle='rgba(7, 9, 14, 0.82)';ctx.strokeStyle=isResizing?'rgba(250, 204, 21, 0.5)':'rgba(56, 189, 248, 0.45)';ctx.lineWidth=1.2;
+        ctx.beginPath();ctx.roundRect(boxX,boxY,boxW,boxH,8);ctx.fill();ctx.stroke();ctx.fillStyle='#f8fafc';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(labelText,midX,boxY+boxH/2);ctx.restore();
+      }
+      function onHandsResults(results) {
+        const width=videoEl.videoWidth||1280,height=videoEl.videoHeight||720;
+        if(canvasEl.width!==width||canvasEl.height!==height){canvasEl.width=width;canvasEl.height=height;}
+        ctx.save();ctx.translate(width,0);ctx.scale(-1,1);ctx.drawImage(results.image,0,0,width,height);ctx.restore();
+        ctx.fillStyle='rgba(7, 9, 14, 0.28)';ctx.fillRect(0,0,width,height);
+        const pinchPoints=[],indexTips=[];
+        if(results.multiHandLandmarks&&results.multiHandLandmarks.length>0){
+          for(const rawLandmarks of results.multiHandLandmarks){
+            const mirrored=rawLandmarks.map(lm=>({x:1-lm.x,y:lm.y,z:lm.z})),thumb=mirrored[4],index=mirrored[8],tx=thumb.x*width,ty=thumb.y*height,ix=index.x*width,iy=index.y*height;
+            indexTips.push({x:ix,y:iy});const isPinching=Math.hypot(tx-ix,ty-iy)<pinchThreshold;drawHandSkeleton(mirrored,width,height,isPinching);
+            if(isPinching){const mid={x:(tx+ix)/2,y:(ty+iy)/2};pinchPoints.push(mid);ctx.save();ctx.beginPath();ctx.arc(mid.x,mid.y,16,0,Math.PI*2);ctx.strokeStyle='#facc15';ctx.lineWidth=2.5;ctx.stroke();ctx.restore();}
+          }
+        }
+        const isResizing=pinchPoints.length===2;
+        if(isResizing){stringP1=pinchPoints[0];stringP2=pinchPoints[1];isPlucking=false;hintIcon.className='w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping shrink-0';hintText.textContent='Move hands closer for higher pitch, apart for lower pitch. Release to lock!';}
+        else if(stringP1&&stringP2&&pinchPoints.length===0){
+          hintIcon.className='w-2.5 h-2.5 rounded-full bg-emerald-400 shrink-0';hintText.textContent='String locked! Swipe your index finger across the line to pluck.';
+          let touchingNow=false,activeTip=null;
+          for(const tip of indexTips){if(pointToSegmentDistance(tip.x,tip.y,stringP1.x,stringP1.y,stringP2.x,stringP2.y)<PLUCK_THRESHOLD){touchingNow=true;activeTip=tip;break;}}
+          if(touchingNow&&!isPlucking){const len=getDistance(stringP1,stringP2),pitch=mapLengthToPitch(len,width,scaleSelect.value);playPluckedString(pitch.freq);isPlucking=true;vibrationAmplitude=28;vibrationPhase=0;lastPluckPoint=activeTip;}else if(!touchingNow)isPlucking=false;
+        } else if(!stringP1||!stringP2){hintIcon.className='w-2.5 h-2.5 rounded-full bg-sky-400 animate-pulse shrink-0';hintText.textContent='Pinch thumb & index finger with BOTH hands to create a string.';}
+        if(stringP1&&stringP2){const len=getDistance(stringP1,stringP2),pitch=mapLengthToPitch(len,width,scaleSelect.value);drawVirtualString(stringP1,stringP2,isResizing,pitch);updateHUD({noteName:pitch.noteName,freq:pitch.freq,length:len});}
+      }
+      async function startApp() {
+        let stream=null;
+        try {
+          errorMessage.classList.add('hidden');startCameraBtn.disabled=true;startCameraBtn.innerHTML='<span>Initializing Vision &amp; Audio...</span>';initAudio();
+          const hands=new Hands({locateFile:file=>'https://cdn.jsdelivr.net/npm/@mediapipe/hands/'+file});
+          hands.setOptions({maxNumHands:2,modelComplexity:1,minDetectionConfidence:0.72,minTrackingConfidence:0.72});hands.onResults(onHandsResults);
+          stream=await navigator.mediaDevices.getUserMedia({video:{width:{ideal:1280},height:{ideal:720},facingMode:'user'},audio:false});
+          videoEl.srcObject=stream;await videoEl.play();
+          startOverlay.classList.add('hidden');liveHintPill.classList.remove('hidden');statusDot.className='w-2 h-2 rounded-full bg-emerald-400 animate-pulse';statusText.textContent='LIVE TRACKING';statusText.classList.replace('text-slate-400','text-emerald-400');
+          async function processFrame(){if(videoEl.readyState>=2)await hands.send({image:videoEl});requestAnimationFrame(processFrame);}
+          requestAnimationFrame(processFrame);
+        } catch(err) {
+          console.error('Camera/MediaPipe Error:',err);if(stream)stream.getTracks().forEach(track=>track.stop());startCameraBtn.disabled=false;startCameraBtn.innerHTML='<span>Retry Camera Access</span>';errorMessage.textContent='Could not access webcam: '+(err.message||'Permission denied or no camera found.');errorMessage.classList.remove('hidden');
+        }
+      }
+      startCameraBtn.addEventListener('click',startApp);
+    })();
+  </script>
+</body>
+</html>
