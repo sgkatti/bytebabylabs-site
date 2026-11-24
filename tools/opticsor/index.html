@@ -1,0 +1,2246 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OPTICSOR | ByteBabyLabs Engineering Tools</title>
+  <meta name="description" content="Browser-based OTDR .SOR trace analysis by ByteBabyLabs. Files are processed locally in your browser.">
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            obsidian: '#090d16',
+            panel: '#0f1623',
+            panelLight: '#162033',
+            borderDark: '#1e293b',
+            traceCyan: '#06b6d4',
+            cursorA: '#f59e0b',
+            cursorB: '#10b981',
+          },
+        },
+      },
+    };
+  </script>
+  <style>
+    /* Custom scrollbar for dark engineering theme */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #090d16;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #1e293b;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #334155;
+    }
+    canvas {
+      touch-action: none;
+      user-select: none;
+    }
+    /* Custom range slider */
+    input[type="range"] {
+      -webkit-appearance: none;
+      background: transparent;
+    }
+    input[type="range"]::-webkit-slider-runnable-track {
+      height: 4px;
+      border-radius: 2px;
+      background: #1e293b;
+    }
+    input[type="range"].slider-a::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      height: 14px;
+      width: 14px;
+      border-radius: 50%;
+      background: #f59e0b;
+      cursor: pointer;
+      margin-top: -5px;
+      box-shadow: 0 0 8px rgba(245, 158, 11, 0.6);
+    }
+    input[type="range"].slider-b::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      height: 14px;
+      width: 14px;
+      border-radius: 50%;
+      background: #10b981;
+      cursor: pointer;
+      margin-top: -5px;
+      box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
+    }
+  </style>
+</head>
+<body class="bg-obsidian text-slate-200 font-sans antialiased min-h-screen flex flex-col selection:bg-cyan-500/30 selection:text-cyan-200">
+
+  <!-- Notification Toast Banner -->
+  <div id="toastBanner" class="fixed bottom-4 right-4 z-50 hidden transform transition-all duration-300 translate-y-2 opacity-0">
+    <div class="bg-panelLight border border-cyan-500/40 text-slate-100 px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3 text-sm">
+      <span id="toastIcon" class="text-cyan-400 font-bold">●</span>
+      <span id="toastMessage">Notification</span>
+    </div>
+  </div>
+
+  <nav aria-label="ByteBabyLabs navigation" style="background:#050912;border-bottom:1px solid #1e293b;padding:9px 16px;font:12px Inter,system-ui,sans-serif;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+    <a href="/" style="color:#67e8f9;text-decoration:none;font-weight:700;letter-spacing:.08em;">BYTEBABYLABS</a>
+    <a href="/#tools" style="color:#94a3b8;text-decoration:none;">← Engineering Tools</a>
+  </nav>
+  <!-- Top Header / Instrument Bar -->
+  <header class="bg-panel border-b border-borderDark px-4 py-3 sticky top-0 z-30 shadow-lg">
+    <div class="max-w-[1600px] mx-auto flex flex-wrap items-center justify-between gap-3">
+      <!-- Brand & Title -->
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-500/20 to-blue-600/20 border border-cyan-500/40 flex items-center justify-center shadow-inner">
+          <svg class="w-5 h-5 text-cyan-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="2 17 7 12 10 14 14 7 17 11 22 6"></polyline>
+            <line x1="2" y1="20" x2="22" y2="20" stroke-opacity="0.4"></line>
+          </svg>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-base sm:text-lg font-bold tracking-tight text-white">OPTIC<span class="text-cyan-400">SOR</span></h1>
+            <span class="text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-300 border border-cyan-500/30">Telcordia SR-4731 / GR-196</span>
+          </div>
+          <p class="text-xs text-slate-400 hidden sm:block">Zero-Dependency Client-Side Binary OTDR Reflectometer Analyzer</p>
+        </div>
+      </div>
+
+      <!-- Active File Badge & Quick Actions -->
+      <div class="flex flex-wrap items-center gap-2">
+        <div id="activeFileBadge" class="hidden md:flex items-center gap-2 bg-obsidian/80 border border-borderDark px-3 py-1.5 rounded-lg text-xs font-mono">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span id="activeFileName" class="text-slate-200 max-w-[200px] truncate">No file loaded</span>
+          <span id="activeFileVersion" class="text-slate-500">v2.0</span>
+        </div>
+
+        <!-- Sample Generators -->
+        <div class="flex items-center gap-1.5 bg-obsidian/60 p-1 rounded-xl border border-borderDark">
+          <button onclick="loadSampleTrace('longhaul')" class="px-2.5 py-1.5 text-xs font-medium rounded-lg bg-panelLight hover:bg-cyan-500/20 hover:text-cyan-300 text-slate-300 border border-transparent hover:border-cyan-500/30 transition cursor-pointer" title="Generate & load a valid binary 1550nm Long-Haul .sor trace">
+            Sample 1550nm Long-Haul
+          </button>
+          <button onclick="loadSampleTrace('ftth')" class="px-2.5 py-1.5 text-xs font-medium rounded-lg bg-panelLight hover:bg-cyan-500/20 hover:text-cyan-300 text-slate-300 border border-transparent hover:border-cyan-500/30 transition cursor-pointer" title="Generate & load a valid binary 1310nm FTTH PON Splitter .sor trace">
+            Sample 1310nm FTTH PON
+          </button>
+          <button id="downloadSorBtn" onclick="downloadCurrentSor()" class="hidden px-2.5 py-1.5 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition cursor-pointer" title="Download the current binary .sor file">
+            ↓ .SOR
+          </button>
+        </div>
+
+        <!-- Upload File Button -->
+        <label class="px-3.5 py-2 text-xs font-semibold rounded-xl bg-cyan-500 hover:bg-cyan-400 text-obsidian shadow-lg shadow-cyan-500/20 transition cursor-pointer flex items-center gap-1.5">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+          </svg>
+          <span>Open .SOR File</span>
+          <input type="file" id="sorFileInput" accept=".sor,.SOR,*/*" class="hidden" />
+        </label>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Workspace -->
+  <main id="dropZone" class="flex-1 max-w-[1600px] w-full mx-auto p-3 sm:p-4 flex flex-col gap-4 relative">
+    
+    <!-- Drag-Over Overlay -->
+    <div id="dropOverlay" class="hidden fixed inset-0 z-40 bg-obsidian/90 backdrop-blur-sm border-2 border-dashed border-cyan-400 m-4 rounded-2xl flex flex-col items-center justify-center pointer-events-none">
+      <div class="w-16 h-16 rounded-2xl bg-cyan-500/20 border border-cyan-400 flex items-center justify-center mb-4">
+        <svg class="w-8 h-8 text-cyan-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+        </svg>
+      </div>
+      <p class="text-xl font-bold text-white">Drop Bellcore / Telcordia .SOR File Here</p>
+      <p class="text-sm text-cyan-300 mt-1 font-mono">Binary parsing executes 100% locally in your browser</p>
+    </div>
+
+    <!-- Top Quick Telemetry Strip -->
+    <section class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
+      <div class="bg-panel border border-borderDark rounded-xl p-3">
+        <div class="text-[11px] uppercase tracking-wider text-slate-400 font-medium">Wavelength</div>
+        <div id="kpiWavelength" class="text-lg font-mono font-bold text-cyan-400 mt-0.5">-- nm</div>
+      </div>
+      <div class="bg-panel border border-borderDark rounded-xl p-3">
+        <div class="text-[11px] uppercase tracking-wider text-slate-400 font-medium">Pulse Width</div>
+        <div id="kpiPulseWidth" class="text-lg font-mono font-bold text-slate-100 mt-0.5">-- ns</div>
+      </div>
+      <div class="bg-panel border border-borderDark rounded-xl p-3">
+        <div class="text-[11px] uppercase tracking-wider text-slate-400 font-medium">Fiber Span / End</div>
+        <div id="kpiSpanLength" class="text-lg font-mono font-bold text-slate-100 mt-0.5">-- km</div>
+      </div>
+      <div class="bg-panel border border-borderDark rounded-xl p-3">
+        <div class="text-[11px] uppercase tracking-wider text-slate-400 font-medium">Total Span Loss</div>
+        <div id="kpiTotalLoss" class="text-lg font-mono font-bold text-amber-400 mt-0.5">-- dB</div>
+      </div>
+      <div class="bg-panel border border-borderDark rounded-xl p-3">
+        <div class="text-[11px] uppercase tracking-wider text-slate-400 font-medium">Index of Refraction</div>
+        <div id="kpiIOR" class="text-lg font-mono font-bold text-slate-100 mt-0.5">--</div>
+      </div>
+      <div class="bg-panel border border-borderDark rounded-xl p-3">
+        <div class="text-[11px] uppercase tracking-wider text-slate-400 font-medium">Detected Events</div>
+        <div id="kpiEventsCount" class="text-lg font-mono font-bold text-emerald-400 mt-0.5">--</div>
+      </div>
+    </section>
+
+    <!-- Primary Chart + Cursor Metrology Card -->
+    <section class="bg-panel border border-borderDark rounded-2xl overflow-hidden shadow-xl flex flex-col">
+      <!-- Chart Toolbar -->
+      <div class="px-4 py-2.5 bg-panelLight/60 border-b border-borderDark flex flex-wrap items-center justify-between gap-2">
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="text-xs font-semibold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-cyan-400"></span>
+            Backscatter Trace (dB vs. km)
+          </span>
+          <span class="text-slate-600">|</span>
+          <!-- Interaction Mode Toggle -->
+          <div class="inline-flex rounded-lg bg-obsidian p-0.5 border border-borderDark text-xs">
+            <button id="modePanBtn" onclick="setInteractionMode('pan')" class="px-2.5 py-1 rounded-md bg-cyan-500/20 text-cyan-300 font-medium transition cursor-pointer">
+              ✋ Pan / Cursors
+            </button>
+            <button id="modeBoxZoomBtn" onclick="setInteractionMode('box')" class="px-2.5 py-1 rounded-md text-slate-400 hover:text-slate-200 font-medium transition cursor-pointer">
+              ⬚ Box Zoom
+            </button>
+          </div>
+          <!-- Event Markers Toggle -->
+          <label class="inline-flex items-center gap-1.5 text-xs text-slate-300 bg-obsidian px-2.5 py-1 rounded-lg border border-borderDark cursor-pointer select-none">
+            <input type="checkbox" id="toggleEventMarkers" checked onchange="renderCanvas()" class="accent-cyan-500 rounded" />
+            <span>Event Flags</span>
+          </label>
+          <label class="inline-flex items-center gap-1.5 text-xs text-slate-300 bg-obsidian px-2.5 py-1 rounded-lg border border-borderDark cursor-pointer select-none">
+            <input type="checkbox" id="toggleLsaLine" checked onchange="renderCanvas()" class="accent-purple-500 rounded" />
+            <span>LSA Fit Line</span>
+          </label>
+        </div>
+
+        <!-- Zoom Controls -->
+        <div class="flex items-center gap-1.5">
+          <button onclick="zoomChart(1.35, 1)" class="px-2 py-1 text-xs font-mono bg-obsidian hover:bg-slate-800 border border-borderDark rounded-lg text-slate-300 cursor-pointer" title="Zoom In Horizontal (X)">+X</button>
+          <button onclick="zoomChart(0.74, 1)" class="px-2 py-1 text-xs font-mono bg-obsidian hover:bg-slate-800 border border-borderDark rounded-lg text-slate-300 cursor-pointer" title="Zoom Out Horizontal (X)">-X</button>
+          <button onclick="zoomChart(1, 1.35)" class="px-2 py-1 text-xs font-mono bg-obsidian hover:bg-slate-800 border border-borderDark rounded-lg text-slate-300 cursor-pointer" title="Zoom In Vertical (Y)">+Y</button>
+          <button onclick="zoomChart(1, 0.74)" class="px-2 py-1 text-xs font-mono bg-obsidian hover:bg-slate-800 border border-borderDark rounded-lg text-slate-300 cursor-pointer" title="Zoom Out Vertical (Y)">-Y</button>
+          <button onclick="resetZoom()" class="px-2.5 py-1 text-xs font-medium bg-slate-800 hover:bg-slate-700 border border-slate-600/50 rounded-lg text-white transition cursor-pointer">
+            Reset View
+          </button>
+        </div>
+      </div>
+
+      <!-- Canvas Container -->
+      <div id="canvasContainer" class="relative w-full h-[360px] sm:h-[430px] bg-obsidian">
+        <canvas id="otdrCanvas" class="w-full h-full block cursor-crosshair"></canvas>
+        
+        <!-- Live Hover Crosshair Readout Pill -->
+        <div id="hoverReadout" class="hidden absolute top-3 right-3 pointer-events-none bg-panel/90 backdrop-blur-md border border-borderDark px-3 py-1.5 rounded-lg text-xs font-mono shadow-lg">
+          <span class="text-slate-400">Dist:</span> <span id="hoverDist" class="text-cyan-300 font-semibold">0.0000 km</span>
+          <span class="mx-2 text-slate-600">|</span>
+          <span class="text-slate-400">Level:</span> <span id="hoverDb" class="text-slate-100 font-semibold">0.00 dB</span>
+        </div>
+
+        <!-- Hint Overlay -->
+        <div class="hidden sm:flex absolute bottom-2 right-3 pointer-events-none text-[11px] font-mono text-slate-500 bg-obsidian/70 px-2 py-0.5 rounded">
+          Drag A/B markers • Scroll to zoom • Drag canvas to pan
+        </div>
+      </div>
+
+      <!-- Dual Cursor A/B Sliders & Metrology Readout Bar -->
+      <div class="bg-panelLight/40 border-t border-borderDark p-3 sm:p-4 grid grid-cols-1 lg:grid-cols-12 gap-4 items-center">
+        <!-- Cursor A & B Controls -->
+        <div class="lg:col-span-5 flex flex-col gap-2.5">
+          <!-- Cursor A Slider -->
+          <div class="flex items-center gap-3 bg-obsidian/80 border border-amber-500/30 rounded-xl px-3 py-2">
+            <span class="w-6 h-6 rounded-md bg-amber-500/20 text-amber-400 font-mono font-bold text-xs flex items-center justify-center shrink-0">A</span>
+            <input type="range" id="cursorASlider" min="0" max="1000" value="150" class="slider-a flex-1" oninput="onSliderCursorChange('A', this.value)" />
+            <div class="text-right font-mono text-xs shrink-0 w-36">
+              <div id="readoutADist" class="text-amber-400 font-semibold">0.0000 km</div>
+              <div id="readoutADb" class="text-slate-400">0.00 dB</div>
+            </div>
+          </div>
+
+          <!-- Cursor B Slider -->
+          <div class="flex items-center gap-3 bg-obsidian/80 border border-emerald-500/30 rounded-xl px-3 py-2">
+            <span class="w-6 h-6 rounded-md bg-emerald-500/20 text-emerald-400 font-mono font-bold text-xs flex items-center justify-center shrink-0">B</span>
+            <input type="range" id="cursorBSlider" min="0" max="1000" value="650" class="slider-b flex-1" oninput="onSliderCursorChange('B', this.value)" />
+            <div class="text-right font-mono text-xs shrink-0 w-36">
+              <div id="readoutBDist" class="text-emerald-400 font-semibold">0.0000 km</div>
+              <div id="readoutBDb" class="text-slate-400">0.00 dB</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Two-Point & LSA Differential Calculations -->
+        <div class="lg:col-span-7 grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+          <div class="bg-obsidian/90 border border-borderDark rounded-xl p-2.5">
+            <div class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Δ Distance (B − A)</div>
+            <div id="deltaDistKm" class="text-sm sm:text-base font-mono font-bold text-white mt-1">0.0000 km</div>
+            <div id="deltaDistM" class="text-[11px] font-mono text-slate-400">0.0 m</div>
+          </div>
+
+          <div class="bg-obsidian/90 border border-borderDark rounded-xl p-2.5">
+            <div class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">2-Pt Loss (A − B)</div>
+            <div id="deltaLoss2Pt" class="text-sm sm:text-base font-mono font-bold text-cyan-300 mt-1">0.000 dB</div>
+            <div class="text-[11px] font-mono text-slate-400">Direct ΔdB</div>
+          </div>
+
+          <div class="bg-obsidian/90 border border-borderDark rounded-xl p-2.5">
+            <div class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">2-Pt Attenuation</div>
+            <div id="deltaAtten2Pt" class="text-sm sm:text-base font-mono font-bold text-amber-300 mt-1">0.000 dB/km</div>
+            <div class="text-[11px] font-mono text-slate-400">ΔdB / Δkm</div>
+          </div>
+
+          <div class="bg-obsidian/90 border border-purple-500/30 rounded-xl p-2.5">
+            <div class="text-[10px] uppercase tracking-wider text-purple-300 font-semibold">LSA Attenuation</div>
+            <div id="deltaAttenLsa" class="text-sm sm:text-base font-mono font-bold text-purple-300 mt-1">0.000 dB/km</div>
+            <div id="deltaLossLsa" class="text-[11px] font-mono text-slate-400">LSA Loss: 0.000 dB</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Bottom Tabbed Engineering Panels -->
+    <section class="bg-panel border border-borderDark rounded-2xl overflow-hidden shadow-xl flex-1 flex flex-col">
+      <!-- Navigation Tabs -->
+      <div class="flex flex-wrap items-center justify-between border-b border-borderDark bg-panelLight/50 px-3 pt-2 gap-2">
+        <div class="flex items-center gap-1 overflow-x-auto">
+          <button onclick="switchTab('events')" id="tabBtn-events" class="tab-btn px-4 py-2.5 text-xs sm:text-sm font-semibold border-b-2 border-cyan-400 text-cyan-300 transition cursor-pointer whitespace-nowrap">
+            Key Events Table
+          </button>
+          <button onclick="switchTab('params')" id="tabBtn-params" class="tab-btn px-4 py-2.5 text-xs sm:text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition cursor-pointer whitespace-nowrap">
+            Acquisition & Fiber Params
+          </button>
+          <button onclick="switchTab('equipment')" id="tabBtn-equipment" class="tab-btn px-4 py-2.5 text-xs sm:text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition cursor-pointer whitespace-nowrap">
+            Equipment & Supplier
+          </button>
+          <button onclick="switchTab('export')" id="tabBtn-export" class="tab-btn px-4 py-2.5 text-xs sm:text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition cursor-pointer whitespace-nowrap">
+            Python / JSON / CSV & Hex
+          </button>
+        </div>
+
+        <div id="checksumBadge" class="text-xs font-mono px-2.5 py-1 mb-1 rounded-lg bg-obsidian border border-borderDark text-slate-400">
+          CRC-16/CCITT: --
+        </div>
+      </div>
+
+      <!-- TAB 1: Key Events Table -->
+      <div id="tabPanel-events" class="tab-panel p-0 overflow-x-auto">
+        <table class="w-full text-left border-collapse font-mono text-xs">
+          <thead>
+            <tr class="bg-obsidian/80 text-slate-400 border-b border-borderDark uppercase text-[11px] tracking-wider">
+              <th class="py-3 px-4">#</th>
+              <th class="py-3 px-4">Event Type</th>
+              <th class="py-3 px-4">Distance (km)</th>
+              <th class="py-3 px-4">Section (km)</th>
+              <th class="py-3 px-4">Splice Loss (dB)</th>
+              <th class="py-3 px-4">Reflectance (dB)</th>
+              <th class="py-3 px-4">Atten. Coeff (dB/km)</th>
+              <th class="py-3 px-4">Cumul. Loss (dB)</th>
+              <th class="py-3 px-4">Comment</th>
+            </tr>
+          </thead>
+          <tbody id="eventsTableBody" class="divide-y divide-borderDark/60 text-slate-200">
+            <!-- Populated dynamically -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- TAB 2: Acquisition & Fiber Parameters -->
+      <div id="tabPanel-params" class="tab-panel hidden p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
+        <!-- General Parameters -->
+        <div class="bg-obsidian/70 border border-borderDark rounded-xl p-4">
+          <h3 class="text-cyan-400 font-semibold uppercase tracking-wider mb-3 flex items-center gap-2">
+            <span>GenParams Block</span>
+          </h3>
+          <dl id="genParamsList" class="space-y-2 font-mono"></dl>
+        </div>
+
+        <!-- Fixed Acquisition Parameters -->
+        <div class="bg-obsidian/70 border border-borderDark rounded-xl p-4">
+          <h3 class="text-cyan-400 font-semibold uppercase tracking-wider mb-3 flex items-center gap-2">
+            <span>FxdParams Block</span>
+          </h3>
+          <dl id="fxdParamsList" class="space-y-2 font-mono"></dl>
+        </div>
+
+        <!-- Thresholds & DataPts Summary -->
+        <div class="bg-obsidian/70 border border-borderDark rounded-xl p-4">
+          <h3 class="text-cyan-400 font-semibold uppercase tracking-wider mb-3 flex items-center gap-2">
+            <span>Thresholds & Binary Map</span>
+          </h3>
+          <dl id="thresholdsList" class="space-y-2 font-mono"></dl>
+        </div>
+      </div>
+
+      <!-- TAB 3: Equipment & Supplier Parameters -->
+      <div id="tabPanel-equipment" class="tab-panel hidden p-4 grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+        <div class="bg-obsidian/70 border border-borderDark rounded-xl p-4">
+          <h3 class="text-emerald-400 font-semibold uppercase tracking-wider mb-3">SupParams (OTDR Hardware & Firmware)</h3>
+          <dl id="supParamsList" class="space-y-2.5 font-mono"></dl>
+        </div>
+        <div class="bg-obsidian/70 border border-borderDark rounded-xl p-4">
+          <h3 class="text-amber-400 font-semibold uppercase tracking-wider mb-3">Telcordia SR-4731 Block Directory</h3>
+          <div id="blockMapList" class="space-y-2 font-mono"></div>
+        </div>
+      </div>
+
+      <!-- TAB 4: Export (Python / JSON / CSV / Binary Hex) -->
+      <div id="tabPanel-export" class="tab-panel hidden p-4 flex flex-col gap-4">
+        <div class="flex flex-wrap items-center justify-between gap-3 bg-obsidian/70 border border-borderDark p-3 rounded-xl">
+          <div>
+            <h3 class="text-sm font-semibold text-white">Data Interoperability & Python Pipeline Export</h3>
+            <p class="text-xs text-slate-400">Export parsed trace vectors to CSV, copy pyOTDR-compatible JSON, or inspect raw binary hex bytes.</p>
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <button onclick="exportTraceCsv()" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 transition cursor-pointer">
+              ↓ Download Trace CSV
+            </button>
+            <button onclick="exportEventsCsv()" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 transition cursor-pointer">
+              ↓ Download Events CSV
+            </button>
+            <button onclick="copyPythonSnippet()" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 transition cursor-pointer">
+              Copy Python Analysis Script + JSON
+            </button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <!-- JSON Preview -->
+          <div class="bg-obsidian border border-borderDark rounded-xl p-3 flex flex-col">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-mono font-semibold text-cyan-400">pyOTDR-Style Structured JSON Summary</span>
+              <button onclick="copyJsonSummary()" class="text-[11px] font-mono text-slate-400 hover:text-white underline cursor-pointer">Copy JSON</button>
+            </div>
+            <pre id="jsonOutputPreview" class="text-[11px] font-mono text-slate-300 overflow-auto max-h-64 p-2 bg-panel/60 rounded-lg"></pre>
+          </div>
+
+          <!-- Binary Hex Dump Preview -->
+          <div class="bg-obsidian border border-borderDark rounded-xl p-3 flex flex-col">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-mono font-semibold text-amber-400">Raw Binary Header & Map Hex Dump (First 512 Bytes)</span>
+              <span id="fileByteSizeLabel" class="text-[11px] font-mono text-slate-400">0 bytes</span>
+            </div>
+            <pre id="hexDumpPreview" class="text-[11px] font-mono text-slate-300 overflow-auto max-h-64 p-2 bg-panel/60 rounded-lg leading-relaxed"></pre>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+  <footer style="max-width:1600px;width:100%;margin:0 auto;padding:12px 16px 24px;color:#64748b;font:11px Inter,system-ui,sans-serif;">OPTICSOR · A ByteBabyLabs engineering tool · OTDR files are parsed locally in your browser.</footer>
+
+  <script>
+    /**
+     * ============================================================================
+     * OPTICSOR - Pure Client-Side Telcordia SR-4731 / Bellcore GR-196 (.sor) Parser
+     * ============================================================================
+     * Implements binary DataView parsing for v1.x and v2.x OTDR .sor files:
+     * - Map block directory parsing
+     * - GenParams, SupParams, FxdParams, KeyEvents, DataPts, Cksum
+     * - CRC-16/CCITT-FALSE verification
+     * - Synthetic binary .sor generator for immediate zero-file testing
+     */
+
+    const SPEED_OF_LIGHT_VACUUM = 299792.458; // km/s (Telcordia SR-4731 standard constant)
+
+    // Global application state
+    const appState = {
+      rawBuffer: null,
+      fileName: '',
+      parsed: null,
+      // Chart Viewport State
+      view: {
+        xMin: 0,
+        xMax: 10,
+        yMin: -5,
+        yMax: 45,
+        dataXMin: 0,
+        dataXMax: 10,
+        dataYMin: -5,
+        dataYMax: 45,
+      },
+      // Dual Cursors (stored as data point indices)
+      cursorAIdx: 0,
+      cursorBIdx: 0,
+      selectedEventIdx: -1,
+      interactionMode: 'pan', // 'pan' or 'box'
+      draggingTarget: null,   // 'cursorA' | 'cursorB' | 'pan' | 'box' | null
+      dragStartPx: { x: 0, y: 0 },
+      dragCurrentPx: { x: 0, y: 0 },
+      dragStartView: null,
+    };
+
+    // Canvas Layout Padding
+    const PAD = { top: 24, right: 24, bottom: 38, left: 58 };
+
+    /**
+     * Helper: Show non-blocking toast notification
+     */
+    function showToast(msg, type = 'info') {
+      const banner = document.getElementById('toastBanner');
+      const icon = document.getElementById('toastIcon');
+      const text = document.getElementById('toastMessage');
+      text.textContent = msg;
+      icon.className = type === 'error' ? 'text-rose-400 font-bold' : type === 'success' ? 'text-emerald-400 font-bold' : 'text-cyan-400 font-bold';
+      banner.classList.remove('hidden');
+      requestAnimationFrame(() => {
+        banner.classList.remove('translate-y-2', 'opacity-0');
+      });
+      clearTimeout(window._toastTimer);
+      window._toastTimer = setTimeout(() => {
+        banner.classList.add('translate-y-2', 'opacity-0');
+        setTimeout(() => banner.classList.add('hidden'), 300);
+      }, 3200);
+    }
+
+    /**
+     * Binary Reader Utility wrapping DataView (Little-Endian per Telcordia SR-4731)
+     */
+    class SorBinaryReader {
+      constructor(arrayBuffer) {
+        this.buffer = arrayBuffer;
+        this.view = new DataView(arrayBuffer);
+        this.bytes = new Uint8Array(arrayBuffer);
+        this.offset = 0;
+        this.decoder = new TextDecoder('latin1');
+      }
+
+      seek(pos) {
+        this.offset = pos;
+      }
+
+      readUint8() {
+        const val = this.view.getUint8(this.offset);
+        this.offset += 1;
+        return val;
+      }
+
+      readUint16() {
+        const val = this.view.getUint16(this.offset, true);
+        this.offset += 2;
+        return val;
+      }
+
+      readInt16() {
+        const val = this.view.getInt16(this.offset, true);
+        this.offset += 2;
+        return val;
+      }
+
+      readUint32() {
+        const val = this.view.getUint32(this.offset, true);
+        this.offset += 4;
+        return val;
+      }
+
+      readInt32() {
+        const val = this.view.getInt32(this.offset, true);
+        this.offset += 4;
+        return val;
+      }
+
+      readNullTerminatedString(maxLen = 512) {
+        const start = this.offset;
+        let end = start;
+        while (end < this.bytes.length && this.bytes[end] !== 0 && (end - start) < maxLen) {
+          end++;
+        }
+        const str = this.decoder.decode(this.bytes.subarray(start, end));
+        this.offset = end < this.bytes.length ? end + 1 : end;
+        return str.trim();
+      }
+
+      readFixedString(len) {
+        const str = this.decoder.decode(this.bytes.subarray(this.offset, this.offset + len));
+        this.offset += len;
+        return str.replace(/\0/g, '').trim();
+      }
+    }
+
+    /**
+     * Compute CRC-16/CCITT-FALSE (Poly 0x1021, Init 0xFFFF) per Telcordia SR-4731
+     */
+    function computeCrc16Ccitt(uint8Array, length) {
+      let crc = 0xFFFF;
+      for (let i = 0; i < length; i++) {
+        crc ^= (uint8Array[i] << 8);
+        for (let bit = 0; bit < 8; bit++) {
+          if (crc & 0x8000) {
+            crc = ((crc << 1) ^ 0x1021) & 0xFFFF;
+          } else {
+            crc = (crc << 1) & 0xFFFF;
+          }
+        }
+      }
+      return crc;
+    }
+
+    /**
+     * Core Bellcore GR-196 / Telcordia SR-4731 Binary Parser
+     */
+    function parseSorBuffer(arrayBuffer) {
+      const reader = new SorBinaryReader(arrayBuffer);
+      if (arrayBuffer.byteLength < 64) {
+        throw new Error('File too small to be a valid Telcordia .sor trace.');
+      }
+
+      // 1. Detect Format Version (v2.x starts with "Map\0", v1.x starts with uint16 revision)
+      const magic = reader.decoder.decode(reader.bytes.subarray(0, 4));
+      let formatVersion = 1;
+      let mapRevision = 100;
+      let mapBlockSize = 0;
+      let numBlocks = 0;
+      const blocks = [];
+
+      if (magic === 'Map\0') {
+        formatVersion = 2;
+        reader.seek(4);
+        mapRevision = reader.readUint16();
+        mapBlockSize = reader.readUint32();
+        numBlocks = reader.readUint16();
+
+        let runningOffset = mapBlockSize;
+        // In v2.x, block entries in Map exclude the Map block itself (numBlocks - 1 entries)
+        for (let i = 0; i < numBlocks - 1; i++) {
+          const name = reader.readNullTerminatedString(32);
+          const rev = reader.readUint16();
+          const size = reader.readUint32();
+          blocks.push({
+            name,
+            revision: rev,
+            size,
+            offset: runningOffset,
+          });
+          runningOffset += size;
+        }
+      } else {
+        // Bellcore GR-196 v1.x format
+        formatVersion = 1;
+        reader.seek(0);
+        mapRevision = reader.readUint16();
+        mapBlockSize = reader.readUint32();
+        numBlocks = reader.readUint16();
+
+        let runningOffset = mapBlockSize;
+        for (let i = 0; i < numBlocks - 1; i++) {
+          const name = reader.readNullTerminatedString(32);
+          const rev = reader.readUint16();
+          const size = reader.readUint32();
+          blocks.push({
+            name,
+            revision: rev,
+            size,
+            offset: runningOffset,
+          });
+          runningOffset += size;
+        }
+      }
+
+      const result = {
+        formatVersion,
+        mapRevision: (mapRevision / 100).toFixed(2),
+        fileSize: arrayBuffer.byteLength,
+        blocks,
+        genParams: {},
+        supParams: {},
+        fxdParams: {},
+        keyEvents: [],
+        summary: {},
+        trace: {
+          distancesKm: new Float64Array(0),
+          powerDb: new Float32Array(0),
+          rawPoints: new Uint16Array(0),
+          scaleFactor: 1000,
+        },
+        checksum: {
+          stored: null,
+          calculated: null,
+          valid: null,
+        },
+      };
+
+      // Helper to find a block by name
+      const getBlock = (name) => blocks.find((b) => b.name.toLowerCase() === name.toLowerCase());
+
+      // 2. Parse GenParams
+      const genBlock = getBlock('GenParams');
+      if (genBlock && genBlock.offset + genBlock.size <= arrayBuffer.byteLength) {
+        reader.seek(genBlock.offset);
+        if (formatVersion === 2) {
+          reader.readNullTerminatedString(32); // Skip "GenParams\0" header in v2
+        }
+        const lang = reader.readFixedString(2);
+        const cableId = reader.readNullTerminatedString();
+        const fiberId = reader.readNullTerminatedString();
+        const fiberTypeCode = formatVersion === 2 ? reader.readUint16() : 0;
+        const nominalWavelength = reader.readUint16();
+        const originLocation = reader.readNullTerminatedString();
+        const destLocation = reader.readNullTerminatedString();
+        const cableCode = reader.readNullTerminatedString();
+        const currentDataFlag = reader.readFixedString(2);
+        const userOffset = reader.readInt32();
+        const userOffsetDistance = formatVersion === 2 ? reader.readInt32() : 0;
+        const operator = reader.readNullTerminatedString();
+        const comment = reader.readNullTerminatedString();
+
+        const fiberTypes = {
+          651: 'ITU-T G.651 (Multimode)',
+          652: 'ITU-T G.652 (Standard SMF)',
+          653: 'ITU-T G.653 (Dispersion Shifted)',
+          654: 'ITU-T G.654 (Cut-off Shifted)',
+          655: 'ITU-T G.655 (Non-Zero DSF)',
+          657: 'ITU-T G.657 (Bend-Insensitive SMF)',
+        };
+
+        result.genParams = {
+          language: lang || 'EN',
+          cableId: cableId || 'N/A',
+          fiberId: fiberId || 'N/A',
+          fiberType: fiberTypes[fiberTypeCode] || (fiberTypeCode ? `G.${fiberTypeCode}` : 'SMF (Standard)'),
+          nominalWavelengthNm: nominalWavelength,
+          originLocation: originLocation || 'Origin',
+          destLocation: destLocation || 'Destination',
+          cableCode: cableCode || 'N/A',
+          currentDataFlag: currentDataFlag || 'CC',
+          userOffset,
+          userOffsetDistance,
+          operator: operator || 'N/A',
+          comment: comment || '—',
+        };
+      }
+
+      // 3. Parse SupParams
+      const supBlock = getBlock('SupParams');
+      if (supBlock && supBlock.offset + supBlock.size <= arrayBuffer.byteLength) {
+        reader.seek(supBlock.offset);
+        if (formatVersion === 2) {
+          reader.readNullTerminatedString(32); // Skip "SupParams\0"
+        }
+        result.supParams = {
+          supplierName: reader.readNullTerminatedString() || 'Unknown Vendor',
+          otdrMainframeId: reader.readNullTerminatedString() || 'N/A',
+          otdrMainframeSn: reader.readNullTerminatedString() || 'N/A',
+          opticalModuleId: reader.readNullTerminatedString() || 'N/A',
+          opticalModuleSn: reader.readNullTerminatedString() || 'N/A',
+          softwareRevision: reader.readNullTerminatedString() || 'N/A',
+          otherInfo: reader.readNullTerminatedString() || '—',
+        };
+      }
+
+      // 4. Parse FxdParams
+      const fxdBlock = getBlock('FxdParams');
+      if (fxdBlock && fxdBlock.offset + fxdBlock.size <= arrayBuffer.byteLength) {
+        reader.seek(fxdBlock.offset);
+        if (formatVersion === 2) {
+          reader.readNullTerminatedString(32); // Skip "FxdParams\0"
+        }
+        const timestampSec = reader.readUint32();
+        const distanceUnits = reader.readFixedString(2) || 'km';
+        const actualWavelengthTenths = reader.readUint16(); // in 0.1 nm
+        const acqOffset = reader.readInt32();
+        const acqOffsetDist = formatVersion === 2 ? reader.readInt32() : 0;
+        const totalPulseWidths = reader.readUint16();
+        const pulseWidthNs = reader.readUint16();
+        // Data spacing: time in 100 picoseconds (1e-10 s) for 10,000 points
+        const dataSpacing100ps = reader.readUint32();
+        const numDataPointsPerPulse = reader.readUint32();
+        // Group Index (n * 100000)
+        const groupIndexRaw = reader.readUint32();
+        const groupIndex = groupIndexRaw > 0 ? groupIndexRaw / 100000.0 : 1.4680;
+        // Backscatter coefficient (tenths of dB, e.g., 800 -> -80.0 dB)
+        const backscatterRaw = reader.readInt16();
+        const backscatterDb = -(Math.abs(backscatterRaw) / 10.0);
+        // Number of averages
+        const numAverages = reader.readUint32();
+        // Averaging time in 0.1 sec (v2)
+        const avgTimeSec = formatVersion === 2 ? reader.readUint16() / 10.0 : 0;
+        // Acquisition range (in 100 ps units)
+        const acqRange100ps = reader.readUint32();
+        const acqRangeDist = formatVersion === 2 ? reader.readInt32() : 0;
+        const frontPanelOffset = reader.readInt32();
+        const noiseFloorLevel = reader.readUint16() / 1000.0;
+        const noiseFloorScale = reader.readInt16();
+        const powerOffsetFirstPt = reader.readUint16() / 1000.0;
+        const lossThreshold = reader.readUint16() / 1000.0;
+        const reflThreshold = -(Math.abs(reader.readInt16()) / 1000.0);
+        const endOfFiberThreshold = reader.readUint16() / 1000.0;
+        const traceType = formatVersion === 2 ? reader.readFixedString(2) : 'ST';
+
+        // Calculate exact distance resolution per sample point (km)
+        // dataSpacing100ps is time for 10,000 points in units of 100 ps (1e-10 s)
+        // One-way time per point = (dataSpacing100ps / 10000) * 1e-10 s
+        // Distance per point (km) = (c / n) * time_per_point
+        const oneWayTimePerPtSec = (dataSpacing100ps / 10000.0) * 1e-10;
+        const kmPerPoint = (SPEED_OF_LIGHT_VACUUM / groupIndex) * oneWayTimePerPtSec;
+
+        const dateObj = timestampSec > 0 ? new Date(timestampSec * 1000) : null;
+
+        result.fxdParams = {
+          timestamp: dateObj ? dateObj.toISOString().replace('T', ' ').substring(0, 19) + ' UTC' : 'N/A',
+          distanceUnits,
+          actualWavelengthNm: (actualWavelengthTenths / 10.0).toFixed(1),
+          pulseWidthNs,
+          totalPulseWidths,
+          dataSpacing100ps,
+          kmPerPoint,
+          metersPerPoint: kmPerPoint * 1000.0,
+          numDataPoints: numDataPointsPerPulse,
+          groupIndex: groupIndex.toFixed(5),
+          backscatterDb: backscatterDb.toFixed(1),
+          numAverages,
+          avgTimeSec: avgTimeSec.toFixed(1),
+          noiseFloorDb: noiseFloorLevel.toFixed(2),
+          lossThresholdDb: lossThreshold.toFixed(3),
+          reflThresholdDb: reflThreshold.toFixed(2),
+          endOfFiberThresholdDb: endOfFiberThreshold.toFixed(3),
+          traceType: traceType || 'ST (Standard)',
+        };
+      }
+
+      const kmPerPt = result.fxdParams.kmPerPoint || 0.001;
+
+      // 5. Parse KeyEvents
+      const evBlock = getBlock('KeyEvents');
+      if (evBlock && evBlock.offset + evBlock.size <= arrayBuffer.byteLength) {
+        reader.seek(evBlock.offset);
+        if (formatVersion === 2) {
+          reader.readNullTerminatedString(32); // Skip "KeyEvents\0"
+        }
+        const numEvents = reader.readUint16();
+        let prevDistKm = 0;
+        let cumulativeLoss = 0;
+
+        for (let i = 0; i < numEvents; i++) {
+          const eventNum = reader.readUint16();
+          // Event propagation time in 100 ps units (one-way)
+          const propTime100ps = reader.readUint32();
+          const distKm = (SPEED_OF_LIGHT_VACUUM / parseFloat(result.fxdParams.groupIndex || 1.468)) * (propTime100ps * 1e-10);
+          const attenCoeff = reader.readInt16() / 1000.0; // dB/km
+          const spliceLoss = reader.readInt16() / 1000.0; // dB
+          const reflectance = reader.readInt32() / 1000.0; // dB
+          const eventCode = reader.readFixedString(6);
+          const lossMeasurementTech = reader.readFixedString(2);
+
+          if (formatVersion === 2) {
+            // Skip 5 marker locations (5 * 4 bytes = 20 bytes)
+            reader.offset += 20;
+          }
+          const comment = reader.readNullTerminatedString();
+
+          const sectionKm = Math.max(0, distKm - prevDistKm);
+          if (i > 0) {
+            cumulativeLoss += sectionKm * Math.max(0, attenCoeff) + spliceLoss;
+          }
+          prevDistKm = distKm;
+
+          // Interpret Telcordia event code (e.g., "1F9999", "0F9999", "1E9999")
+          const typeChar = eventCode.charAt(0);
+          const endChar = eventCode.charAt(1);
+          let eventTypeLabel = 'Non-Reflective';
+          if (endChar === 'E') {
+            eventTypeLabel = 'End of Fiber';
+          } else if (typeChar === '1') {
+            eventTypeLabel = i === 0 ? 'Launch Connector' : 'Reflective Event';
+          } else if (typeChar === '2') {
+            eventTypeLabel = 'Multiple / Splitter';
+          } else if (typeChar === '0') {
+            eventTypeLabel = 'Splice / Bend';
+          }
+
+          result.keyEvents.push({
+            eventNum,
+            eventCode,
+            eventTypeLabel,
+            distKm,
+            sectionKm,
+            attenCoeff,
+            spliceLoss,
+            reflectance,
+            lossMeasurementTech,
+            cumulativeLoss,
+            comment: comment || '—',
+          });
+        }
+
+        // Parse End-to-End Summary at tail of KeyEvents block
+        if (reader.offset + 20 <= evBlock.offset + evBlock.size) {
+          const totalLoss = reader.readInt32() / 1000.0;
+          const fiberStart100ps = reader.readInt32();
+          const fiberEnd100ps = reader.readUint32();
+          const orl = reader.readUint16() / 1000.0;
+          const orlStart100ps = reader.readInt32();
+          const orlFinish100ps = reader.readUint32();
+
+          const ior = parseFloat(result.fxdParams.groupIndex || 1.468);
+          const spanEndKm = (SPEED_OF_LIGHT_VACUUM / ior) * (fiberEnd100ps * 1e-10);
+
+          result.summary = {
+            totalLossDb: totalLoss,
+            spanEndKm,
+            opticalReturnLossDb: orl,
+          };
+        }
+      }
+
+      // 6. Parse DataPts
+      const dataBlock = getBlock('DataPts');
+      if (dataBlock && dataBlock.offset + dataBlock.size <= arrayBuffer.byteLength) {
+        reader.seek(dataBlock.offset);
+        if (formatVersion === 2) {
+          reader.readNullTerminatedString(32); // Skip "DataPts\0"
+        }
+        const totalPoints = reader.readUint32();
+        const numTraces = reader.readInt16();
+        const numPointsInTrace = reader.readUint32();
+        const scaleFactorRaw = reader.readInt16();
+        const scaleFactor = scaleFactorRaw > 0 ? scaleFactorRaw : 1000;
+
+        const safeCount = Math.min(numPointsInTrace, Math.floor((dataBlock.offset + dataBlock.size - reader.offset) / 2));
+        const rawPoints = new Uint16Array(safeCount);
+        const distancesKm = new Float64Array(safeCount);
+        const powerDb = new Float32Array(safeCount);
+
+        // Find max raw point so we normalize relative top level cleanly (Telcordia convention: 65535 - raw or scaled)
+        let maxRaw = 0;
+        for (let i = 0; i < safeCount; i++) {
+          const val = reader.readUint16();
+          rawPoints[i] = val;
+          if (val > maxRaw) maxRaw = val;
+        }
+
+        // Convert raw unsigned 16-bit integers to relative backscatter dB
+        // In Telcordia SR-4731, raw values represent attenuation downward from reference level:
+        // dB = (maxRaw - rawVal) * (scaleFactor / 1000.0) * -0.001 + referenceOffset
+        const stepMultiplier = (scaleFactor / 1000.0) * 0.001;
+        const topReferenceDb = maxRaw * stepMultiplier;
+
+        for (let i = 0; i < safeCount; i++) {
+          distancesKm[i] = i * kmPerPt;
+          // Standard OTDR trace descends from top (~40-50 dB dynamic range down to 0 dB noise floor)
+          powerDb[i] = topReferenceDb - (rawPoints[i] * stepMultiplier);
+        }
+
+        result.trace = {
+          distancesKm,
+          powerDb,
+          rawPoints,
+          scaleFactor,
+        };
+      }
+
+      // 7. Verify Checksum (Cksum block is last 2 bytes of file)
+      if (arrayBuffer.byteLength >= 4) {
+        const storedCrc = reader.view.getUint16(arrayBuffer.byteLength - 2, true);
+        const calcCrc = computeCrc16Ccitt(reader.bytes, arrayBuffer.byteLength - 2);
+        result.checksum = {
+          stored: '0x' + storedCrc.toString(16).toUpperCase().padStart(4, '0'),
+          calculated: '0x' + calcCrc.toString(16).toUpperCase().padStart(4, '0'),
+          valid: storedCrc === calcCrc,
+        };
+      }
+
+      return result;
+    }
+
+    /**
+     * ============================================================================
+     * Synthetic Binary Telcordia SR-4731 (.sor v2.0) Generator
+     * ============================================================================
+     * Builds genuine, spec-compliant binary .sor ArrayBuffers with valid CRC-16
+     * checksums so users can test immediately or download valid .sor files.
+     */
+    function generateSyntheticSorBuffer(preset = 'longhaul') {
+      const isFtth = preset === 'ftth';
+      const encoder = new TextEncoder();
+
+      function writeStr(arr, str) {
+        const bytes = encoder.encode(str);
+        bytes.forEach((b) => arr.push(b));
+        arr.push(0); // Null terminator
+      }
+      function writeFixed(arr, str, len) {
+        for (let i = 0; i < len; i++) {
+          arr.push(i < str.length ? str.charCodeAt(i) : 0x20);
+        }
+      }
+      function writeU16(arr, val) {
+        arr.push(val & 0xFF, (val >> 8) & 0xFF);
+      }
+      function writeI16(arr, val) {
+        const v = val < 0 ? 0x10000 + val : val;
+        arr.push(v & 0xFF, (v >> 8) & 0xFF);
+      }
+      function writeU32(arr, val) {
+        arr.push(val & 0xFF, (val >> 8) & 0xFF, (val >> 16) & 0xFF, (val >> 24) & 0xFF);
+      }
+      function writeI32(arr, val) {
+        const v = val < 0 ? 0x100000000 + val : val;
+        arr.push(v & 0xFF, (v >> 8) & 0xFF, (v >> 16) & 0xFF, (v >> 24) & 0xFF);
+      }
+
+      // Parameters based on preset
+      const wavelengthNm = isFtth ? 1310 : 1550;
+      const pulseWidthNs = isFtth ? 30 : 275;
+      const groupIndex = 1.4682;
+      const numPoints = 4000;
+      const targetSpanKm = isFtth ? 12.0 : 65.0;
+      const kmPerPt = targetSpanKm / numPoints;
+      // Solve dataSpacing100ps from kmPerPt:
+      // kmPerPt = (c / n) * (dataSpacing100ps / 10000) * 1e-10
+      const dataSpacing100ps = Math.round((kmPerPt * 10000 * 1e10) / (SPEED_OF_LIGHT_VACUUM / groupIndex));
+      const actualKmPerPt = (SPEED_OF_LIGHT_VACUUM / groupIndex) * (dataSpacing100ps / 10000.0) * 1e-10;
+
+      // Define simulated fiber events
+      const eventsSpec = isFtth
+        ? [
+            { distKm: 0.0, code: '1F9999', atten: 0.34, loss: 0.42, refl: -41.5, comment: 'OLT APC Launch Patchcord' },
+            { distKm: 2.15, code: '0F9999', atten: 0.34, loss: 0.14, refl: 0.0, comment: 'FOSC-A Fusion Splice #1' },
+            { distKm: 4.82, code: '1F9999', atten: 0.35, loss: 0.38, refl: -46.2, comment: 'FDH Cabinet Bulkhead' },
+            { distKm: 6.40, code: '2F9999', atten: 0.35, loss: 9.45, refl: -52.0, comment: '1x8 PLC Optical Splitter' },
+            { distKm: 8.95, code: '0F9999', atten: 0.36, loss: 0.19, refl: 0.0, comment: 'Drop Terminal Splice' },
+            { distKm: 10.42, code: '1E9999', atten: 0.0, loss: 0.0, refl: -36.8, comment: 'ONT UPC Connector (Fiber End)' },
+          ]
+        : [
+            { distKm: 0.0, code: '1F9999', atten: 0.192, loss: 0.35, refl: -44.0, comment: 'CO ODF Launch Connector' },
+            { distKm: 12.40, code: '0F9999', atten: 0.190, loss: 0.08, refl: 0.0, comment: 'MH-104 Ribbon Fusion Splice' },
+            { distKm: 26.85, code: '0F9999', atten: 0.194, loss: 0.11, refl: 0.0, comment: 'MH-218 Ribbon Fusion Splice' },
+            { distKm: 38.20, code: '1F9999', atten: 0.195, loss: 0.52, refl: -39.4, comment: 'ILA Mid-Span Patch Panel' },
+            { distKm: 49.60, code: '0F9999', atten: 0.210, loss: 0.64, refl: 0.0, comment: 'Macrobend / High-Loss Splice' },
+            { distKm: 58.75, code: '1E9999', atten: 0.0, loss: 0.0, refl: -34.2, comment: 'Far-End POP Receiver (End)' },
+          ];
+
+      // 1. Build GenParams Block
+      const genBytes = [];
+      writeStr(genBytes, 'GenParams');
+      writeFixed(genBytes, 'EN', 2);
+      writeStr(genBytes, isFtth ? 'FTTH-PON-FEEDER-04' : 'DWDM-CORE-WEST-12');
+      writeStr(genBytes, isFtth ? 'FIBER-012-BLUE' : 'FIBER-001-BLUE');
+      writeU16(genBytes, isFtth ? 657 : 652);
+      writeU16(genBytes, wavelengthNm);
+      writeStr(genBytes, isFtth ? 'Central Office OLT-02' : 'Mumbai POP-A');
+      writeStr(genBytes, isFtth ? 'Zone-4 ONT Drop' : 'Pune Core Hub-B');
+      writeStr(genBytes, isFtth ? 'ADSS-24F' : 'G652D-144F');
+      writeFixed(genBytes, 'CC', 2);
+      writeI32(genBytes, 0);
+      writeI32(genBytes, 0);
+      writeStr(genBytes, 'R. Sharma (Field Eng)');
+      writeStr(genBytes, isFtth ? '1x8 PON branch verification' : 'Post-cutover acceptance trace');
+
+      // 2. Build SupParams Block
+      const supBytes = [];
+      writeStr(supBytes, 'SupParams');
+      writeStr(supBytes, 'OpticWave Photonics');
+      writeStr(supBytes, 'OW-9000X Pro OTDR');
+      writeStr(supBytes, 'SN-2026-88412');
+      writeStr(supBytes, isFtth ? 'SM-1310/1550-PON' : 'LH-1550/1625-ULTRA');
+      writeStr(supBytes, 'MOD-77419');
+      writeStr(supBytes, 'v4.12.8-SR4731');
+      writeStr(supBytes, 'Calibrated 2026-09-15');
+
+      // 3. Build FxdParams Block
+      const fxdBytes = [];
+      writeStr(fxdBytes, 'FxdParams');
+      writeU32(fxdBytes, Math.floor(Date.now() / 1000));
+      writeFixed(fxdBytes, 'km', 2);
+      writeU16(fxdBytes, wavelengthNm * 10);
+      writeI32(fxdBytes, 0);
+      writeI32(fxdBytes, 0);
+      writeU16(fxdBytes, 1);
+      writeU16(fxdBytes, pulseWidthNs);
+      writeU32(fxdBytes, dataSpacing100ps);
+      writeU32(fxdBytes, numPoints);
+      writeU32(fxdBytes, Math.round(groupIndex * 100000));
+      writeI16(fxdBytes, isFtth ? -795 : -818); // -79.5 dB or -81.8 dB
+      writeU32(fxdBytes, isFtth ? 16384 : 32768);
+      writeU16(fxdBytes, isFtth ? 150 : 450); // 15.0s or 45.0s
+      writeU32(fxdBytes, dataSpacing100ps * (numPoints / 10000));
+      writeI32(fxdBytes, 0);
+      writeI32(fxdBytes, 0);
+      writeU16(fxdBytes, 5000);
+      writeI16(fxdBytes, 1000);
+      writeU16(fxdBytes, 38500);
+      writeU16(fxdBytes, 20);  // 0.020 dB loss threshold
+      writeI16(fxdBytes, -55000); // -55.0 dB reflectance threshold
+      writeU16(fxdBytes, 3000); // 3.000 dB end threshold
+      writeFixed(fxdBytes, 'ST', 2);
+
+      // 4. Build KeyEvents Block
+      const evBytes = [];
+      writeStr(evBytes, 'KeyEvents');
+      writeU16(evBytes, eventsSpec.length);
+
+      let totalSpanLoss = 0;
+      eventsSpec.forEach((ev, idx) => {
+        const propTime100ps = Math.round((ev.distKm / (SPEED_OF_LIGHT_VACUUM / groupIndex)) * 1e10);
+        writeU16(evBytes, idx + 1);
+        writeU32(evBytes, propTime100ps);
+        writeI16(evBytes, Math.round(ev.atten * 1000));
+        writeI16(evBytes, Math.round(ev.loss * 1000));
+        writeI16(evBytes, Math.round(ev.refl * 1000));
+        writeFixed(evBytes, ev.code, 6);
+        writeFixed(evBytes, 'LS', 2);
+        // 5 marker positions (20 bytes)
+        for (let m = 0; m < 5; m++) writeI32(evBytes, propTime100ps);
+        writeStr(evBytes, ev.comment);
+
+        if (idx > 0) {
+          const prevDist = eventsSpec[idx - 1].distKm;
+          totalSpanLoss += (ev.distKm - prevDist) * eventsSpec[idx - 1].atten + ev.loss;
+        } else {
+          totalSpanLoss += ev.loss;
+        }
+      });
+
+      const endEvent = eventsSpec[eventsSpec.length - 1];
+      const endProp100ps = Math.round((endEvent.distKm / (SPEED_OF_LIGHT_VACUUM / groupIndex)) * 1e10);
+      writeI32(evBytes, Math.round(totalSpanLoss * 1000));
+      writeI32(evBytes, 0);
+      writeU32(evBytes, endProp100ps);
+      writeU16(evBytes, isFtth ? 31450 : 34820); // ORL 31.45 dB / 34.82 dB
+      writeI32(evBytes, 0);
+      writeU32(evBytes, endProp100ps);
+
+      // 5. Build DataPts Block (Realistic Rayleigh Backscatter + Fresnel Peaks + Noise Floor)
+      const dataBytes = [];
+      writeStr(dataBytes, 'DataPts');
+      writeU32(dataBytes, numPoints);
+      writeI16(dataBytes, 1);
+      writeU32(dataBytes, numPoints);
+      writeI16(dataBytes, 1000); // Scale factor 1000 => 1 unit = 0.001 dB
+
+      const launchDb = isFtth ? 34.0 : 41.5;
+      const noiseFloorDb = 4.2;
+      // Deterministic pseudo-random generator for realistic Rayleigh jitter
+      let seed = isFtth ? 131099 : 155077;
+      const nextRand = () => {
+        seed = (seed * 1664525 + 1013904223) % 4294967296;
+        return (seed / 4294967296) - 0.5;
+      };
+
+      const traceDb = new Float64Array(numPoints);
+      let maxDbSeen = 0;
+
+      for (let i = 0; i < numPoints; i++) {
+        const dKm = i * actualKmPerPt;
+        let db = launchDb;
+
+        if (dKm <= endEvent.distKm) {
+          // Accumulate slope and discrete event losses up to dKm
+          for (let e = 0; e < eventsSpec.length; e++) {
+            const ev = eventsSpec[e];
+            const nextEv = eventsSpec[e + 1];
+            if (dKm >= ev.distKm) {
+              if (e > 0) db -= ev.loss;
+              const segEnd = nextEv ? Math.min(dKm, nextEv.distKm) : dKm;
+              if (segEnd > ev.distKm) {
+                db -= (segEnd - ev.distKm) * ev.atten;
+              }
+            }
+          }
+
+          // Add Fresnel reflection spike where reflectance < 0
+          for (let e = 0; e < eventsSpec.length; e++) {
+            const ev = eventsSpec[e];
+            if (ev.refl < 0) {
+              const deltaKm = dKm - ev.distKm;
+              const pulseWidthKm = (pulseWidthNs * 1e-9) * (SPEED_OF_LIGHT_VACUUM / groupIndex);
+              if (deltaKm >= -0.02 && deltaKm <= pulseWidthKm * 2.2) {
+                const spikeHeight = isFtth ? (ev.code.startsWith('1E') ? 6.2 : 3.8) : (ev.code.startsWith('1E') ? 7.5 : 4.4);
+                const norm = Math.max(0, deltaKm / (pulseWidthKm * 2.2));
+                const envelope = norm < 0.25 ? (norm / 0.25) : Math.exp(-(norm - 0.25) * 3.8);
+                db += spikeHeight * envelope;
+              }
+            }
+          }
+
+          // Add realistic SNR-dependent Rayleigh backscatter noise
+          const snrFactor = Math.exp((launchDb - db) * 0.085);
+          db += nextRand() * 0.08 * snrFactor;
+        } else {
+          // Beyond fiber end: drop sharply into receiver thermal noise floor
+          const postEndKm = dKm - endEvent.distKm;
+          const drop = Math.min(28, postEndKm * 180);
+          const floorLevel = noiseFloorDb + nextRand() * 1.45;
+          db = Math.max(floorLevel, (db - drop) + nextRand() * 0.8);
+        }
+
+        traceDb[i] = db;
+        if (db > maxDbSeen) maxDbSeen = db;
+      }
+
+      // Encode traceDb into Telcordia uint16 raw values (higher raw = lower dB)
+      for (let i = 0; i < numPoints; i++) {
+        const rawVal = Math.max(0, Math.min(65535, Math.round((maxDbSeen - traceDb[i]) * 1000)));
+        writeU16(dataBytes, rawVal);
+      }
+
+      // 6. Build Cksum Block
+      const cksumHeader = [];
+      writeStr(cksumHeader, 'Cksum');
+
+      // 7. Build Map Block (v2.0)
+      const blockDefs = [
+        { name: 'GenParams', rev: 200, size: genBytes.length },
+        { name: 'SupParams', rev: 200, size: supBytes.length },
+        { name: 'FxdParams', rev: 200, size: fxdBytes.length },
+        { name: 'KeyEvents', rev: 200, size: evBytes.length },
+        { name: 'DataPts', rev: 200, size: dataBytes.length },
+        { name: 'Cksum', rev: 200, size: cksumHeader.length + 2 },
+      ];
+
+      // Pre-compute map block byte length
+      const tempMap = [];
+      writeStr(tempMap, 'Map');
+      writeU16(tempMap, 200);
+      writeU32(tempMap, 0); // placeholder for mapBlockSize
+      writeU16(tempMap, blockDefs.length + 1);
+      blockDefs.forEach((b) => {
+        writeStr(tempMap, b.name);
+        writeU16(tempMap, b.rev);
+        writeU32(tempMap, b.size);
+      });
+
+      const mapSize = tempMap.length;
+      const finalMap = [];
+      writeStr(finalMap, 'Map');
+      writeU16(finalMap, 200);
+      writeU32(finalMap, mapSize);
+      writeU16(finalMap, blockDefs.length + 1);
+      blockDefs.forEach((b) => {
+        writeStr(finalMap, b.name);
+        writeU16(finalMap, b.rev);
+        writeU32(finalMap, b.size);
+      });
+
+      // Assemble complete binary buffer
+      const allBytesExceptCrc = [
+        ...finalMap,
+        ...genBytes,
+        ...supBytes,
+        ...fxdBytes,
+        ...evBytes,
+        ...dataBytes,
+        ...cksumHeader,
+      ];
+
+      const fullBuffer = new ArrayBuffer(allBytesExceptCrc.length + 2);
+      const fullUint8 = new Uint8Array(fullBuffer);
+      fullUint8.set(allBytesExceptCrc, 0);
+
+      const crc = computeCrc16Ccitt(fullUint8, allBytesExceptCrc.length);
+      fullUint8[allBytesExceptCrc.length] = crc & 0xFF;
+      fullUint8[allBytesExceptCrc.length + 1] = (crc >> 8) & 0xFF;
+
+      return fullBuffer;
+    }
+
+    /**
+     * ============================================================================
+     * UI & Telemetry Population
+     * ============================================================================
+     */
+    function loadSorArrayBuffer(buffer, fileName) {
+      try {
+        const parsed = parseSorBuffer(buffer);
+        appState.rawBuffer = buffer;
+        appState.fileName = fileName;
+        appState.parsed = parsed;
+        appState.selectedEventIdx = -1;
+
+        // Update Top File Badge
+        document.getElementById('activeFileBadge').classList.remove('hidden');
+        document.getElementById('activeFileName').textContent = fileName;
+        document.getElementById('activeFileVersion').textContent = `SR-4731 v${parsed.mapRevision}`;
+        document.getElementById('downloadSorBtn').classList.remove('hidden');
+
+        // Update Top KPI Cards
+        const wl = parsed.fxdParams.actualWavelengthNm || parsed.genParams.nominalWavelengthNm || '--';
+        document.getElementById('kpiWavelength').textContent = `${wl} nm`;
+        document.getElementById('kpiPulseWidth').textContent = `${parsed.fxdParams.pulseWidthNs || '--'} ns`;
+
+        const spanEnd = parsed.summary.spanEndKm
+          ? parsed.summary.spanEndKm
+          : (parsed.keyEvents.length ? parsed.keyEvents[parsed.keyEvents.length - 1].distKm : 0);
+        document.getElementById('kpiSpanLength').textContent = `${spanEnd.toFixed(3)} km`;
+
+        const totalLoss = parsed.summary.totalLossDb !== undefined
+          ? parsed.summary.totalLossDb
+          : (parsed.keyEvents.length ? parsed.keyEvents[parsed.keyEvents.length - 1].cumulativeLoss : 0);
+        document.getElementById('kpiTotalLoss').textContent = `${totalLoss.toFixed(2)} dB`;
+        document.getElementById('kpiIOR').textContent = parsed.fxdParams.groupIndex || '--';
+        document.getElementById('kpiEventsCount').textContent = `${parsed.keyEvents.length} Events`;
+
+        // Checksum badge
+        const cksumEl = document.getElementById('checksumBadge');
+        if (parsed.checksum.valid !== null) {
+          cksumEl.textContent = `CRC-16: ${parsed.checksum.stored} (${parsed.checksum.valid ? 'VALID' : 'MISMATCH'})`;
+          cksumEl.className = parsed.checksum.valid
+            ? 'text-xs font-mono px-2.5 py-1 mb-1 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-300'
+            : 'text-xs font-mono px-2.5 py-1 mb-1 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-300';
+        }
+
+        // Populate Tables & Telemetry Panels
+        populateEventsTable(parsed.keyEvents);
+        populateParameterLists(parsed);
+        populateExportPreviews(parsed, buffer);
+
+        // Configure Chart Viewport & Initial Cursors
+        const dists = parsed.trace.distancesKm;
+        const powers = parsed.trace.powerDb;
+        if (dists.length > 0) {
+          let minP = Infinity;
+          let maxP = -Infinity;
+          for (let i = 0; i < powers.length; i++) {
+            if (powers[i] < minP) minP = powers[i];
+            if (powers[i] > maxP) maxP = powers[i];
+          }
+          const xMax = dists[dists.length - 1];
+          const yPad = Math.max(2, (maxP - minP) * 0.08);
+
+          appState.view.dataXMin = 0;
+          appState.view.dataXMax = xMax;
+          appState.view.dataYMin = Math.floor(minP - yPad);
+          appState.view.dataYMax = Math.ceil(maxP + yPad);
+          resetZoom(false);
+
+          // Place Cursor A at ~12% of span and Cursor B at ~65% of span
+          const endIdx = spanEnd > 0
+            ? Math.min(dists.length - 1, Math.floor(spanEnd / (parsed.fxdParams.kmPerPoint || 0.001)))
+            : dists.length - 1;
+          appState.cursorAIdx = Math.max(0, Math.floor(endIdx * 0.12));
+          appState.cursorBIdx = Math.max(appState.cursorAIdx + 5, Math.floor(endIdx * 0.68));
+
+          const sliderA = document.getElementById('cursorASlider');
+          const sliderB = document.getElementById('cursorBSlider');
+          sliderA.max = dists.length - 1;
+          sliderB.max = dists.length - 1;
+          sliderA.value = appState.cursorAIdx;
+          sliderB.value = appState.cursorBIdx;
+
+          updateCursorMetrology();
+          renderCanvas();
+        }
+
+        showToast(`Loaded "${fileName}" (${parsed.trace.distancesKm.length.toLocaleString()} pts, ${parsed.keyEvents.length} events)`, 'success');
+      } catch (err) {
+        console.error(err);
+        showToast(`Parse Error: ${err.message}`, 'error');
+      }
+    }
+
+    function populateEventsTable(events) {
+      const tbody = document.getElementById('eventsTableBody');
+      tbody.innerHTML = '';
+
+      if (!events || events.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="9" class="py-6 text-center text-slate-500">No KeyEvents recorded in this trace.</td></tr>';
+        return;
+      }
+
+      events.forEach((ev, idx) => {
+        const tr = document.createElement('tr');
+        tr.id = `event-row-${idx}`;
+        tr.className = 'hover:bg-cyan-500/10 transition cursor-pointer';
+        tr.onclick = () => selectEvent(idx);
+
+        // Badge styling by event type
+        let badgeClass = 'bg-slate-800 text-slate-300 border-slate-700';
+        if (ev.eventTypeLabel.includes('End')) badgeClass = 'bg-rose-500/20 text-rose-300 border-rose-500/40';
+        else if (ev.eventTypeLabel.includes('Splitter')) badgeClass = 'bg-purple-500/20 text-purple-300 border-purple-500/40';
+        else if (ev.eventTypeLabel.includes('Reflective') || ev.eventTypeLabel.includes('Launch')) badgeClass = 'bg-amber-500/20 text-amber-300 border-amber-500/40';
+        else badgeClass = 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30';
+
+        const reflDisplay = ev.reflectance < 0 ? `${ev.reflectance.toFixed(2)} dB` : '—';
+        const attenDisplay = ev.eventTypeLabel.includes('End') ? '—' : `${ev.attenCoeff.toFixed(3)}`;
+
+        tr.innerHTML = `
+          <td class="py-2.5 px-4 font-bold text-slate-300">${ev.eventNum}</td>
+          <td class="py-2.5 px-4">
+            <span class="px-2 py-0.5 rounded-md border text-[11px] font-sans font-medium ${badgeClass}">${ev.eventTypeLabel}</span>
+            <span class="text-[10px] text-slate-500 ml-1">(${ev.eventCode})</span>
+          </td>
+          <td class="py-2.5 px-4 text-cyan-300 font-semibold">${ev.distKm.toFixed(4)}</td>
+          <td class="py-2.5 px-4 text-slate-400">${ev.sectionKm.toFixed(4)}</td>
+          <td class="py-2.5 px-4 ${ev.spliceLoss > 0.5 ? 'text-amber-400 font-bold' : 'text-slate-200'}">${ev.spliceLoss.toFixed(3)}</td>
+          <td class="py-2.5 px-4 text-slate-300">${reflDisplay}</td>
+          <td class="py-2.5 px-4 text-slate-300">${attenDisplay}</td>
+          <td class="py-2.5 px-4 text-emerald-400 font-semibold">${ev.cumulativeLoss.toFixed(3)}</td>
+          <td class="py-2.5 px-4 font-sans text-slate-400 max-w-xs truncate">${ev.comment}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function renderKeyValueList(containerId, items) {
+      const container = document.getElementById(containerId);
+      container.innerHTML = items
+        .map(
+          ([k, v]) => `
+        <div class="flex justify-between items-baseline gap-2 border-b border-borderDark/50 pb-1.5">
+          <dt class="text-slate-400">${k}</dt>
+          <dd class="text-slate-100 font-medium text-right break-all">${v}</dd>
+        </div>`
+        )
+        .join('');
+    }
+
+    function populateParameterLists(parsed) {
+      const g = parsed.genParams;
+      const f = parsed.fxdParams;
+      const s = parsed.supParams;
+
+      renderKeyValueList('genParamsList', [
+        ['Cable ID', g.cableId],
+        ['Fiber ID', g.fiberId],
+        ['Fiber Type', g.fiberType],
+        ['Nominal Wavelength', `${g.nominalWavelengthNm} nm`],
+        ['Origin Location', g.originLocation],
+        ['Destination', g.destLocation],
+        ['Cable Code', g.cableCode],
+        ['Operator', g.operator],
+        ['Comment', g.comment],
+      ]);
+
+      renderKeyValueList('fxdParamsList', [
+        ['Acquisition Date', f.timestamp],
+        ['Actual Wavelength', `${f.actualWavelengthNm} nm`],
+        ['Pulse Width', `${f.pulseWidthNs} ns`],
+        ['Group Index (IOR)', f.groupIndex],
+        ['Sample Spacing', `${f.metersPerPoint ? f.metersPerPoint.toFixed(3) : '--'} m (${f.dataSpacing100ps} ×100ps)`],
+        ['Data Points', parsed.trace.distancesKm.length.toLocaleString()],
+        ['Averages', f.numAverages?.toLocaleString() || '--'],
+        ['Averaging Time', `${f.avgTimeSec} s`],
+        ['Backscatter Coeff.', `${f.backscatterDb} dB`],
+      ]);
+
+      renderKeyValueList('thresholdsList', [
+        ['Loss Threshold', `${f.lossThresholdDb} dB`],
+        ['Reflectance Thresh.', `${f.reflThresholdDb} dB`],
+        ['End-of-Fiber Thresh.', `${f.endOfFiberThresholdDb} dB`],
+        ['Noise Floor Level', `${f.noiseFloorDb} dB`],
+        ['Optical Return Loss', parsed.summary.opticalReturnLossDb ? `${parsed.summary.opticalReturnLossDb.toFixed(2)} dB` : '--'],
+        ['Trace Type', f.traceType],
+        ['Scale Factor', parsed.trace.scaleFactor],
+        ['SOR Format Spec', `Telcordia v${parsed.mapRevision} (${parsed.fileSize.toLocaleString()} B)`],
+      ]);
+
+      renderKeyValueList('supParamsList', [
+        ['OTDR Vendor', s.supplierName],
+        ['Mainframe Model', s.otdrMainframeId],
+        ['Mainframe Serial #', s.otdrMainframeSn],
+        ['Optical Module', s.opticalModuleId],
+        ['Module Serial #', s.opticalModuleSn],
+        ['Firmware / SW Rev', s.softwareRevision],
+        ['Calibration / Notes', s.otherInfo],
+      ]);
+
+      // Block directory map
+      const mapContainer = document.getElementById('blockMapList');
+      mapContainer.innerHTML = parsed.blocks
+        .map(
+          (b) => `
+        <div class="flex items-center justify-between bg-panel/80 px-3 py-2 rounded-lg border border-borderDark">
+          <div>
+            <span class="text-cyan-300 font-semibold">${b.name}</span>
+            <span class="text-slate-500 text-[11px] ml-2">rev ${(b.revision / 100).toFixed(2)}</span>
+          </div>
+          <div class="text-slate-400 text-[11px]">
+            Offset: <span class="text-slate-200">0x${b.offset.toString(16).toUpperCase()}</span> | Size: <span class="text-slate-200">${b.size} B</span>
+          </div>
+        </div>`
+        )
+        .join('');
+    }
+
+    function populateExportPreviews(parsed, buffer) {
+      // Build compact pyOTDR-style JSON summary
+      const jsonObj = {
+        filename: appState.fileName,
+        format: `Telcordia SR-4731 v${parsed.mapRevision}`,
+        GenParams: parsed.genParams,
+        SupParams: parsed.supParams,
+        FxdParams: parsed.fxdParams,
+        Summary: parsed.summary,
+        KeyEvents: parsed.keyEvents,
+        TracePointsCount: parsed.trace.distancesKm.length,
+      };
+      document.getElementById('jsonOutputPreview').textContent = JSON.stringify(jsonObj, null, 2);
+
+      // Build Hex Dump of first 512 bytes
+      const bytes = new Uint8Array(buffer);
+      const dumpLen = Math.min(512, bytes.length);
+      const lines = [];
+      for (let i = 0; i < dumpLen; i += 16) {
+        const offsetStr = i.toString(16).toUpperCase().padStart(4, '0');
+        const hexParts = [];
+        let asciiStr = '';
+        for (let j = 0; j < 16; j++) {
+          if (i + j < dumpLen) {
+            const b = bytes[i + j];
+            hexParts.push(b.toString(16).toUpperCase().padStart(2, '0'));
+            asciiStr += b >= 32 && b <= 126 ? String.fromCharCode(b) : '.';
+          } else {
+            hexParts.push('  ');
+            asciiStr += ' ';
+          }
+        }
+        lines.push(`${offsetStr}: ${hexParts.slice(0, 8).join(' ')}  ${hexParts.slice(8).join(' ')}  |${asciiStr}|`);
+      }
+      document.getElementById('hexDumpPreview').textContent = lines.join('\n');
+      document.getElementById('fileByteSizeLabel').textContent = `${buffer.byteLength.toLocaleString()} bytes`;
+    }
+
+    /**
+     * ============================================================================
+     * Dual-Cursor & Least-Squares Approximation (LSA) Metrology Engine
+     * ============================================================================
+     */
+    function computeLsaBetweenCursors(idx1, idx2) {
+      const parsed = appState.parsed;
+      if (!parsed || parsed.trace.distancesKm.length < 2) {
+        return { slopeDbPerKm: 0, intercept: 0, lsaLossDb: 0 };
+      }
+
+      const start = Math.min(idx1, idx2);
+      const end = Math.max(idx1, idx2);
+      const n = end - start + 1;
+      const dists = parsed.trace.distancesKm;
+      const powers = parsed.trace.powerDb;
+
+      if (n < 2) {
+        return { slopeDbPerKm: 0, intercept: powers[start], lsaLossDb: 0 };
+      }
+
+      let sumX = 0;
+      let sumY = 0;
+      let sumXY = 0;
+      let sumXX = 0;
+
+      for (let i = start; i <= end; i++) {
+        const x = dists[i];
+        const y = powers[i];
+        sumX += x;
+        sumY += y;
+        sumXY += x * y;
+        sumXX += x * x;
+      }
+
+      const denom = n * sumXX - sumX * sumX;
+      if (Math.abs(denom) < 1e-12) {
+        return { slopeDbPerKm: 0, intercept: sumY / n, lsaLossDb: 0 };
+      }
+
+      const m = (n * sumXY - sumX * sumY) / denom; // dB/km (negative for downward slope)
+      const b = (sumY - m * sumX) / n;
+      const attenDbPerKm = -m;
+      const deltaKm = Math.abs(dists[end] - dists[start]);
+      const lsaLossDb = attenDbPerKm * deltaKm;
+
+      return {
+        slopeDbPerKm: m,
+        intercept: b,
+        attenDbPerKm,
+        lsaLossDb,
+      };
+    }
+
+    function updateCursorMetrology() {
+      const parsed = appState.parsed;
+      if (!parsed || parsed.trace.distancesKm.length === 0) return;
+
+      const dists = parsed.trace.distancesKm;
+      const powers = parsed.trace.powerDb;
+
+      const idxA = Math.max(0, Math.min(dists.length - 1, appState.cursorAIdx));
+      const idxB = Math.max(0, Math.min(dists.length - 1, appState.cursorBIdx));
+
+      const distA = dists[idxA];
+      const dbA = powers[idxA];
+      const distB = dists[idxB];
+      const dbB = powers[idxB];
+
+      document.getElementById('readoutADist').textContent = `${distA.toFixed(4)} km`;
+      document.getElementById('readoutADb').textContent = `${dbA.toFixed(2)} dB`;
+      document.getElementById('readoutBDist').textContent = `${distB.toFixed(4)} km`;
+      document.getElementById('readoutBDb').textContent = `${dbB.toFixed(2)} dB`;
+
+      const deltaKm = distB - distA;
+      const absDeltaKm = Math.abs(deltaKm);
+      const loss2Pt = dbA - dbB; // Positive when B is lower power than A
+      const atten2Pt = absDeltaKm > 1e-6 ? loss2Pt / deltaKm : 0;
+
+      const lsa = computeLsaBetweenCursors(idxA, idxB);
+
+      document.getElementById('deltaDistKm').textContent = `${deltaKm.toFixed(4)} km`;
+      document.getElementById('deltaDistM').textContent = `${(deltaKm * 1000).toFixed(1)} m`;
+      document.getElementById('deltaLoss2Pt').textContent = `${loss2Pt.toFixed(3)} dB`;
+      document.getElementById('deltaAtten2Pt').textContent = `${atten2Pt.toFixed(3)} dB/km`;
+      document.getElementById('deltaAttenLsa').textContent = `${lsa.attenDbPerKm.toFixed(3)} dB/km`;
+      document.getElementById('deltaLossLsa').textContent = `LSA Loss: ${lsa.lsaLossDb.toFixed(3)} dB`;
+    }
+
+    function onSliderCursorChange(which, valStr) {
+      const idx = parseInt(valStr, 10);
+      if (which === 'A') appState.cursorAIdx = idx;
+      else appState.cursorBIdx = idx;
+      updateCursorMetrology();
+      renderCanvas();
+    }
+
+    function selectEvent(idx) {
+      const parsed = appState.parsed;
+      if (!parsed || !parsed.keyEvents[idx]) return;
+
+      appState.selectedEventIdx = idx;
+      const ev = parsed.keyEvents[idx];
+
+      // Highlight table row
+      document.querySelectorAll('#eventsTableBody tr').forEach((row, rIdx) => {
+        if (rIdx === idx) {
+          row.classList.add('bg-cyan-500/20');
+        } else {
+          row.classList.remove('bg-cyan-500/20');
+        }
+      });
+
+      // Move Cursor A to event location & place Cursor B slightly after if needed
+      const kmPerPt = parsed.fxdParams.kmPerPoint || 0.001;
+      const targetIdx = Math.max(0, Math.min(parsed.trace.distancesKm.length - 1, Math.round(ev.distKm / kmPerPt)));
+      appState.cursorAIdx = targetIdx;
+      document.getElementById('cursorASlider').value = targetIdx;
+
+      // Center view gently if event is outside current X zoom window
+      const { xMin, xMax } = appState.view;
+      if (ev.distKm < xMin || ev.distKm > xMax) {
+        const span = xMax - xMin;
+        appState.view.xMin = Math.max(0, ev.distKm - span * 0.3);
+        appState.view.xMax = Math.min(appState.view.dataXMax, appState.view.xMin + span);
+      }
+
+      updateCursorMetrology();
+      renderCanvas();
+    }
+
+    /**
+     * ============================================================================
+     * High-Precision HTML5 Canvas OTDR Trace Renderer & Interactive Controls
+     * ============================================================================
+     */
+    function dataToScreen(xKm, yDb, plotW, plotH) {
+      const { xMin, xMax, yMin, yMax } = appState.view;
+      const px = PAD.left + ((xKm - xMin) / (xMax - xMin)) * plotW;
+      const py = PAD.top + plotH - ((yDb - yMin) / (yMax - yMin)) * plotH;
+      return { x: px, y: py };
+    }
+
+    function screenToData(px, py, plotW, plotH) {
+      const { xMin, xMax, yMin, yMax } = appState.view;
+      const xKm = xMin + ((px - PAD.left) / plotW) * (xMax - xMin);
+      const yDb = yMin + ((PAD.top + plotH - py) / plotH) * (yMax - yMin);
+      return { xKm, yDb };
+    }
+
+    function niceStep(range, targetTicks) {
+      const rough = range / targetTicks;
+      const mag = Math.pow(10, Math.floor(Math.log10(rough)));
+      const norm = rough / mag;
+      let step;
+      if (norm < 1.5) step = 1;
+      else if (norm < 3) step = 2;
+      else if (norm < 7) step = 5;
+      else step = 10;
+      return step * mag;
+    }
+
+    function renderCanvas() {
+      const canvas = document.getElementById('otdrCanvas');
+      const container = document.getElementById('canvasContainer');
+      const dpr = window.devicePixelRatio || 1;
+      const rect = container.getBoundingClientRect();
+
+      if (canvas.width !== Math.floor(rect.width * dpr) || canvas.height !== Math.floor(rect.height * dpr)) {
+        canvas.width = Math.floor(rect.width * dpr);
+        canvas.height = Math.floor(rect.height * dpr);
+      }
+
+      const ctx = canvas.getContext('2d');
+      ctx.save();
+      ctx.scale(dpr, dpr);
+
+      const width = rect.width;
+      const height = rect.height;
+      const plotW = Math.max(50, width - PAD.left - PAD.right);
+      const plotH = Math.max(50, height - PAD.top - PAD.bottom);
+
+      // Background Fill
+      ctx.fillStyle = '#090d16';
+      ctx.fillRect(0, 0, width, height);
+
+      // Plot Area Subtle Gradient
+      const bgGrad = ctx.createLinearGradient(0, PAD.top, 0, PAD.top + plotH);
+      bgGrad.addColorStop(0, '#0d1422');
+      bgGrad.addColorStop(1, '#090d16');
+      ctx.fillStyle = bgGrad;
+      ctx.fillRect(PAD.left, PAD.top, plotW, plotH);
+
+      const { xMin, xMax, yMin, yMax } = appState.view;
+
+      // Grid Lines & Axis Labels
+      ctx.strokeStyle = '#162033';
+      ctx.lineWidth = 1;
+      ctx.fillStyle = '#64748b';
+      ctx.font = '11px "JetBrains Mono", monospace';
+
+      // Vertical Grid (Distance km)
+      const xStep = niceStep(xMax - xMin, Math.max(4, Math.floor(plotW / 100)));
+      const firstX = Math.ceil(xMin / xStep) * xStep;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      for (let x = firstX; x <= xMax + 1e-9; x += xStep) {
+        const { x: px } = dataToScreen(x, yMin, plotW, plotH);
+        if (px >= PAD.left && px <= PAD.left + plotW) {
+          ctx.beginPath();
+          ctx.moveTo(px, PAD.top);
+          ctx.lineTo(px, PAD.top + plotH);
+          ctx.stroke();
+          const decimals = xStep < 0.01 ? 4 : xStep < 0.1 ? 3 : xStep < 1 ? 2 : 1;
+          ctx.fillText(`${x.toFixed(decimals)} km`, px, PAD.top + plotH + 8);
+        }
+      }
+
+      // Horizontal Grid (Relative Power dB)
+      const yStep = niceStep(yMax - yMin, Math.max(4, Math.floor(plotH / 55)));
+      const firstY = Math.ceil(yMin / yStep) * yStep;
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'middle';
+      for (let y = firstY; y <= yMax + 1e-9; y += yStep) {
+        const { y: py } = dataToScreen(xMin, y, plotW, plotH);
+        if (py >= PAD.top && py <= PAD.top + plotH) {
+          ctx.beginPath();
+          ctx.moveTo(PAD.left, py);
+          ctx.lineTo(PAD.left + plotW, py);
+          ctx.stroke();
+          ctx.fillText(`${y.toFixed(1)} dB`, PAD.left - 8, py);
+        }
+      }
+
+      // Plot Border Frame
+      ctx.strokeStyle = '#1e293b';
+      ctx.lineWidth = 1.2;
+      ctx.strokeRect(PAD.left, PAD.top, plotW, plotH);
+
+      const parsed = appState.parsed;
+      if (!parsed || parsed.trace.distancesKm.length === 0) {
+        ctx.restore();
+        return;
+      }
+
+      // Clip to Plot Area for Trace, LSA Line, and Event Flags
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(PAD.left, PAD.top, plotW, plotH);
+      ctx.clip();
+
+      const dists = parsed.trace.distancesKm;
+      const powers = parsed.trace.powerDb;
+      const kmPerPt = parsed.fxdParams.kmPerPoint || (dists[1] - dists[0]) || 0.001;
+
+      const startIdx = Math.max(0, Math.floor(xMin / kmPerPt) - 1);
+      const endIdx = Math.min(dists.length - 1, Math.ceil(xMax / kmPerPt) + 1);
+
+      // Shaded Zone Between Cursor A and Cursor B
+      const cA = dists[appState.cursorAIdx];
+      const cB = dists[appState.cursorBIdx];
+      const pA = dataToScreen(cA, powers[appState.cursorAIdx], plotW, plotH);
+      const pB = dataToScreen(cB, powers[appState.cursorBIdx], plotW, plotH);
+
+      const zoneLeft = Math.min(pA.x, pB.x);
+      const zoneWidth = Math.abs(pB.x - pA.x);
+      ctx.fillStyle = 'rgba(6, 182, 212, 0.05)';
+      ctx.fillRect(zoneLeft, PAD.top, zoneWidth, plotH);
+
+      // Draw OTDR Backscatter Trace Line (with decimation envelope for high-density traces)
+      ctx.beginPath();
+      ctx.strokeStyle = '#06b6d4';
+      ctx.lineWidth = 1.6;
+      ctx.lineJoin = 'round';
+
+      const visibleCount = endIdx - startIdx + 1;
+      const step = Math.max(1, Math.floor(visibleCount / (plotW * 2)));
+
+      let started = false;
+      for (let i = startIdx; i <= endIdx; i += step) {
+        const pt = dataToScreen(dists[i], powers[i], plotW, plotH);
+        if (!started) {
+          ctx.moveTo(pt.x, pt.y);
+          started = true;
+        } else {
+          ctx.lineTo(pt.x, pt.y);
+        }
+      }
+      ctx.stroke();
+
+      // Draw LSA Regression Line between A and B if enabled
+      if (document.getElementById('toggleLsaLine').checked && Math.abs(appState.cursorBIdx - appState.cursorAIdx) >= 2) {
+        const lsa = computeLsaBetweenCursors(appState.cursorAIdx, appState.cursorBIdx);
+        const y1 = lsa.slopeDbPerKm * cA + lsa.intercept;
+        const y2 = lsa.slopeDbPerKm * cB + lsa.intercept;
+        const lsaStart = dataToScreen(cA, y1, plotW, plotH);
+        const lsaEnd = dataToScreen(cB, y2, plotW, plotH);
+
+        ctx.save();
+        ctx.strokeStyle = '#c084fc';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([6, 4]);
+        ctx.beginPath();
+        ctx.moveTo(lsaStart.x, lsaStart.y);
+        ctx.lineTo(lsaEnd.x, lsaEnd.y);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // Draw Event Markers if enabled
+      if (document.getElementById('toggleEventMarkers').checked) {
+        parsed.keyEvents.forEach((ev, idx) => {
+          if (ev.distKm < xMin || ev.distKm > xMax) return;
+          const evSampleIdx = Math.max(0, Math.min(dists.length - 1, Math.round(ev.distKm / kmPerPt)));
+          const evPos = dataToScreen(ev.distKm, powers[evSampleIdx], plotW, plotH);
+          const isSelected = idx === appState.selectedEventIdx;
+
+          // Vertical dashed guide
+          ctx.save();
+          ctx.strokeStyle = isSelected ? 'rgba(244, 63, 94, 0.7)' : 'rgba(148, 163, 184, 0.25)';
+          ctx.setLineDash([3, 3]);
+          ctx.beginPath();
+          ctx.moveTo(evPos.x, PAD.top + 22);
+          ctx.lineTo(evPos.x, PAD.top + plotH);
+          ctx.stroke();
+          ctx.restore();
+
+          // Event Number Badge at top of plot
+          const badgeW = 22;
+          const badgeH = 16;
+          const bx = evPos.x - badgeW / 2;
+          const by = PAD.top + 4;
+
+          ctx.fillStyle = isSelected ? '#e11d48' : ev.eventTypeLabel.includes('End') ? '#be123c' : '#1e293b';
+          ctx.strokeStyle = isSelected ? '#fda4af' : '#38bdf8';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.roundRect(bx, by, badgeW, badgeH, 4);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = '#f8fafc';
+          ctx.font = 'bold 10px "JetBrains Mono", monospace';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(`${ev.eventNum}`, evPos.x, by + badgeH / 2 + 0.5);
+        });
+      }
+
+      // Draw Cursor A (Amber)
+      drawCursorLine(ctx, pA.x, pA.y, plotH, '#f59e0b', 'A');
+
+      // Draw Cursor B (Emerald)
+      drawCursorLine(ctx, pB.x, pB.y, plotH, '#10b981', 'B');
+
+      // Draw Box Zoom Selection Rectangle if active
+      if (appState.draggingTarget === 'box') {
+        const bx = Math.min(appState.dragStartPx.x, appState.dragCurrentPx.x);
+        const by = Math.min(appState.dragStartPx.y, appState.dragCurrentPx.y);
+        const bw = Math.abs(appState.dragCurrentPx.x - appState.dragStartPx.x);
+        const bh = Math.abs(appState.dragCurrentPx.y - appState.dragStartPx.y);
+
+        ctx.fillStyle = 'rgba(6, 182, 212, 0.15)';
+        ctx.fillRect(bx, by, bw, bh);
+        ctx.strokeStyle = '#22d3ee';
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(bx, by, bw, bh);
+      }
+
+      ctx.restore(); // Remove plot clip
+      ctx.restore(); // Restore DPR scale
+    }
+
+    function drawCursorLine(ctx, px, py, plotH, color, label) {
+      // Vertical line
+      ctx.save();
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(px, PAD.top);
+      ctx.lineTo(px, PAD.top + plotH);
+      ctx.stroke();
+
+      // Intersection reticle dot on trace
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(px, py, 4.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#090d16';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      // Top Handle Tab
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.roundRect(px - 10, PAD.top + plotH - 22, 20, 18, 4);
+      ctx.fill();
+
+      ctx.fillStyle = '#090d16';
+      ctx.font = 'bold 11px "JetBrains Mono", monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(label, px, PAD.top + plotH - 13);
+      ctx.restore();
+    }
+
+    /**
+     * Zoom & Pan Controls
+     */
+    function zoomChart(factorX, factorY, centerXKm = null, centerYDb = null) {
+      const v = appState.view;
+      const cx = centerXKm !== null ? centerXKm : (v.xMin + v.xMax) / 2;
+      const cy = centerYDb !== null ? centerYDb : (v.yMin + v.yMax) / 2;
+
+      const newHalfW = ((v.xMax - v.xMin) / 2) / factorX;
+      const newHalfH = ((v.yMax - v.yMin) / 2) / factorY;
+
+      v.xMin = Math.max(v.dataXMin, cx - newHalfW);
+      v.xMax = Math.min(v.dataXMax, cx + newHalfW);
+      v.yMin = Math.max(v.dataYMin - 10, cy - newHalfH);
+      v.yMax = Math.min(v.dataYMax + 10, cy + newHalfH);
+
+      if (v.xMax - v.xMin < 0.005) {
+        const mid = (v.xMin + v.xMax) / 2;
+        v.xMin = Math.max(0, mid - 0.0025);
+        v.xMax = mid + 0.0025;
+      }
+      renderCanvas();
+    }
+
+    function resetZoom(redraw = true) {
+      appState.view.xMin = appState.view.dataXMin;
+      appState.view.xMax = appState.view.dataXMax;
+      appState.view.yMin = appState.view.dataYMin;
+      appState.view.yMax = appState.view.dataYMax;
+      if (redraw) renderCanvas();
+    }
+
+    function setInteractionMode(mode) {
+      appState.interactionMode = mode;
+      const panBtn = document.getElementById('modePanBtn');
+      const boxBtn = document.getElementById('modeBoxZoomBtn');
+      if (mode === 'pan') {
+        panBtn.className = 'px-2.5 py-1 rounded-md bg-cyan-500/20 text-cyan-300 font-medium transition cursor-pointer';
+        boxBtn.className = 'px-2.5 py-1 rounded-md text-slate-400 hover:text-slate-200 font-medium transition cursor-pointer';
+      } else {
+        boxBtn.className = 'px-2.5 py-1 rounded-md bg-cyan-500/20 text-cyan-300 font-medium transition cursor-pointer';
+        panBtn.className = 'px-2.5 py-1 rounded-md text-slate-400 hover:text-slate-200 font-medium transition cursor-pointer';
+      }
+    }
+
+    /**
+     * Canvas Pointer / Touch / Wheel Event Wiring
+     */
+    function initCanvasInteractions() {
+      const canvas = document.getElementById('otdrCanvas');
+      const hoverPill = document.getElementById('hoverReadout');
+
+      const getLocalPos = (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        return {
+          x: clientX - rect.left,
+          y: clientY - rect.top,
+          plotW: Math.max(50, rect.width - PAD.left - PAD.right),
+          plotH: Math.max(50, rect.height - PAD.top - PAD.bottom),
+        };
+      };
+
+      const onPointerDown = (e) => {
+        if (!appState.parsed || appState.parsed.trace.distancesKm.length === 0) return;
+        const pos = getLocalPos(e);
+        const dists = appState.parsed.trace.distancesKm;
+        const powers = appState.parsed.trace.powerDb;
+
+        const pA = dataToScreen(dists[appState.cursorAIdx], powers[appState.cursorAIdx], pos.plotW, pos.plotH);
+        const pB = dataToScreen(dists[appState.cursorBIdx], powers[appState.cursorBIdx], pos.plotW, pos.plotH);
+
+        // Check if user grabbed Cursor A or Cursor B within 14px tolerance
+        if (Math.abs(pos.x - pA.x) <= 14) {
+          appState.draggingTarget = 'cursorA';
+        } else if (Math.abs(pos.x - pB.x) <= 14) {
+          appState.draggingTarget = 'cursorB';
+        } else if (appState.interactionMode === 'box') {
+          appState.draggingTarget = 'box';
+          appState.dragStartPx = { x: pos.x, y: pos.y };
+          appState.dragCurrentPx = { x: pos.x, y: pos.y };
+        } else {
+          appState.draggingTarget = 'pan';
+          appState.dragStartPx = { x: pos.x, y: pos.y };
+          appState.dragStartView = { ...appState.view };
+        }
+      };
+
+      const onPointerMove = (e) => {
+        if (!appState.parsed || appState.parsed.trace.distancesKm.length === 0) return;
+        const pos = getLocalPos(e);
+        const dists = appState.parsed.trace.distancesKm;
+        const powers = appState.parsed.trace.powerDb;
+        const kmPerPt = appState.parsed.fxdParams.kmPerPoint || 0.001;
+
+        // Update hover crosshair readout
+        if (pos.x >= PAD.left && pos.x <= PAD.left + pos.plotW && pos.y >= PAD.top && pos.y <= PAD.top + pos.plotH) {
+          const { xKm } = screenToData(pos.x, pos.y, pos.plotW, pos.plotH);
+          const idx = Math.max(0, Math.min(dists.length - 1, Math.round(xKm / kmPerPt)));
+          hoverPill.classList.remove('hidden');
+          document.getElementById('hoverDist').textContent = `${dists[idx].toFixed(4)} km`;
+          document.getElementById('hoverDb').textContent = `${powers[idx].toFixed(2)} dB`;
+        } else {
+          hoverPill.classList.add('hidden');
+        }
+
+        if (!appState.draggingTarget) return;
+        if (e.cancelable) e.preventDefault();
+
+        if (appState.draggingTarget === 'cursorA' || appState.draggingTarget === 'cursorB') {
+          const { xKm } = screenToData(pos.x, pos.y, pos.plotW, pos.plotH);
+          const clampedIdx = Math.max(0, Math.min(dists.length - 1, Math.round(xKm / kmPerPt)));
+          if (appState.draggingTarget === 'cursorA') {
+            appState.cursorAIdx = clampedIdx;
+            document.getElementById('cursorASlider').value = clampedIdx;
+          } else {
+            appState.cursorBIdx = clampedIdx;
+            document.getElementById('cursorBSlider').value = clampedIdx;
+          }
+          updateCursorMetrology();
+          renderCanvas();
+        } else if (appState.draggingTarget === 'pan') {
+          const sv = appState.dragStartView;
+          const dxKm = ((pos.x - appState.dragStartPx.x) / pos.plotW) * (sv.xMax - sv.xMin);
+          const dyDb = ((pos.y - appState.dragStartPx.y) / pos.plotH) * (sv.yMax - sv.yMin);
+
+          const spanX = sv.xMax - sv.xMin;
+          let nextXMin = sv.xMin - dxKm;
+          let nextXMax = sv.xMax - dxKm;
+          if (nextXMin < sv.dataXMin) {
+            nextXMin = sv.dataXMin;
+            nextXMax = sv.dataXMin + spanX;
+          }
+          if (nextXMax > sv.dataXMax) {
+            nextXMax = sv.dataXMax;
+            nextXMin = Math.max(sv.dataXMin, sv.dataXMax - spanX);
+          }
+
+          appState.view.xMin = nextXMin;
+          appState.view.xMax = nextXMax;
+          appState.view.yMin = sv.yMin + dyDb;
+          appState.view.yMax = sv.yMax + dyDb;
+          renderCanvas();
+        } else if (appState.draggingTarget === 'box') {
+          appState.dragCurrentPx = { x: pos.x, y: pos.y };
+          renderCanvas();
+        }
+      };
+
+      const onPointerUp = (e) => {
+        if (appState.draggingTarget === 'box') {
+          const rect = canvas.getBoundingClientRect();
+          const plotW = Math.max(50, rect.width - PAD.left - PAD.right);
+          const plotH = Math.max(50, rect.height - PAD.top - PAD.bottom);
+
+          const x1 = Math.min(appState.dragStartPx.x, appState.dragCurrentPx.x);
+          const x2 = Math.max(appState.dragStartPx.x, appState.dragCurrentPx.x);
+          const y1 = Math.min(appState.dragStartPx.y, appState.dragCurrentPx.y);
+          const y2 = Math.max(appState.dragStartPx.y, appState.dragCurrentPx.y);
+
+          if (x2 - x1 > 12 && y2 - y1 > 12) {
+            const topLeft = screenToData(x1, y1, plotW, plotH);
+            const bottomRight = screenToData(x2, y2, plotW, plotH);
+            appState.view.xMin = Math.max(appState.view.dataXMin, topLeft.xKm);
+            appState.view.xMax = Math.min(appState.view.dataXMax, bottomRight.xKm);
+            appState.view.yMin = bottomRight.yDb;
+            appState.view.yMax = topLeft.yDb;
+          }
+        }
+        appState.draggingTarget = null;
+        renderCanvas();
+      };
+
+      canvas.addEventListener('mousedown', onPointerDown);
+      window.addEventListener('mousemove', onPointerMove);
+      window.addEventListener('mouseup', onPointerUp);
+
+      canvas.addEventListener('touchstart', onPointerDown, { passive: false });
+      canvas.addEventListener('touchmove', onPointerMove, { passive: false });
+      window.addEventListener('touchend', onPointerUp);
+
+      canvas.addEventListener('mouseleave', () => hoverPill.classList.add('hidden'));
+
+      canvas.addEventListener(
+        'wheel',
+        (e) => {
+          if (!appState.parsed || appState.parsed.trace.distancesKm.length === 0) return;
+          e.preventDefault();
+          const pos = getLocalPos(e);
+          const { xKm, yDb } = screenToData(pos.x, pos.y, pos.plotW, pos.plotH);
+          const factor = e.deltaY < 0 ? 1.22 : 0.82;
+          zoomChart(factor, e.shiftKey ? factor : 1.0, xKm, yDb);
+        },
+        { passive: false }
+      );
+    }
+
+    /**
+     * ============================================================================
+     * Tab Switching, File I/O, and Export Helpers
+     * ============================================================================
+     */
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-panel').forEach((p) => p.classList.add('hidden'));
+      document.getElementById(`tabPanel-${tabId}`).classList.remove('hidden');
+
+      document.querySelectorAll('.tab-btn').forEach((btn) => {
+        btn.className = 'tab-btn px-4 py-2.5 text-xs sm:text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition cursor-pointer whitespace-nowrap';
+      });
+      document.getElementById(`tabBtn-${tabId}`).className =
+        'tab-btn px-4 py-2.5 text-xs sm:text-sm font-semibold border-b-2 border-cyan-400 text-cyan-300 transition cursor-pointer whitespace-nowrap';
+    }
+
+    function loadSampleTrace(preset) {
+      const buffer = generateSyntheticSorBuffer(preset);
+      const fname = preset === 'ftth' ? 'FTTH_PON_1310nm_Splitter.sor' : 'DWDM_LongHaul_1550nm_65km.sor';
+      loadSorArrayBuffer(buffer, fname);
+    }
+
+    function downloadBlob(blob, filename) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    function downloadCurrentSor() {
+      if (!appState.rawBuffer) return;
+      const blob = new Blob([appState.rawBuffer], { type: 'application/octet-stream' });
+      downloadBlob(blob, appState.fileName || 'trace.sor');
+      showToast(`Downloaded ${appState.fileName}`, 'success');
+    }
+
+    function exportTraceCsv() {
+      if (!appState.parsed) return;
+      const dists = appState.parsed.trace.distancesKm;
+      const powers = appState.parsed.trace.powerDb;
+      const lines = ['Distance_km,Relative_Power_dB'];
+      for (let i = 0; i < dists.length; i++) {
+        lines.push(`${dists[i].toFixed(6)},${powers[i].toFixed(4)}`);
+      }
+      const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+      downloadBlob(blob, `${appState.fileName.replace(/\.sor$/i, '')}_trace.csv`);
+      showToast('Exported trace points CSV', 'success');
+    }
+
+    function exportEventsCsv() {
+      if (!appState.parsed) return;
+      const lines = ['Event_Num,Type,Code,Distance_km,Section_km,Splice_Loss_dB,Reflectance_dB,Atten_dB_per_km,Cumulative_Loss_dB,Comment'];
+      appState.parsed.keyEvents.forEach((ev) => {
+        lines.push(
+          `${ev.eventNum},"${ev.eventTypeLabel}",${ev.eventCode},${ev.distKm.toFixed(4)},${ev.sectionKm.toFixed(4)},${ev.spliceLoss.toFixed(3)},${ev.reflectance.toFixed(2)},${ev.attenCoeff.toFixed(3)},${ev.cumulativeLoss.toFixed(3)},"${ev.comment.replace(/"/g, '""')}"`
+        );
+      });
+      const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+      downloadBlob(blob, `${appState.fileName.replace(/\.sor$/i, '')}_events.csv`);
+      showToast('Exported KeyEvents CSV', 'success');
+    }
+
+    function copyTextFallback(text) {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+    }
+
+    function copyJsonSummary() {
+      const content = document.getElementById('jsonOutputPreview').textContent;
+      copyTextFallback(content);
+      showToast('Copied JSON summary to clipboard', 'success');
+    }
+
+    function copyPythonSnippet() {
+      const jsonText = document.getElementById('jsonOutputPreview').textContent;
+      const pyScript = `import json\nimport pandas as pd\n\n# Parsed OTDR Metadata from OpticSOR (${appState.fileName})\nsor_data = json.loads(r'''${jsonText}''')\n\ndf_events = pd.DataFrame(sor_data["KeyEvents"])\nprint("Span End (km):", sor_data["Summary"].get("spanEndKm"))\nprint("Total Loss (dB):", sor_data["Summary"].get("totalLossDb"))\nprint(df_events[["eventNum", "eventTypeLabel", "distKm", "spliceLoss", "reflectance", "attenCoeff"]])\n`;
+      copyTextFallback(pyScript);
+      showToast('Copied ready-to-run Python + JSON analysis script', 'success');
+    }
+
+    // File Picker & Drag-and-Drop Initialization
+    window.addEventListener('DOMContentLoaded', () => {
+      initCanvasInteractions();
+
+      const fileInput = document.getElementById('sorFileInput');
+      fileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => loadSorArrayBuffer(ev.target.result, file.name);
+        reader.readAsArrayBuffer(file);
+        fileInput.value = '';
+      });
+
+      const dropOverlay = document.getElementById('dropOverlay');
+      let dragCounter = 0;
+
+      window.addEventListener('dragenter', (e) => {
+        e.preventDefault();
+        dragCounter++;
+        dropOverlay.classList.remove('hidden');
+      });
+
+      window.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+        dragCounter--;
+        if (dragCounter <= 0) {
+          dragCounter = 0;
+          dropOverlay.classList.add('hidden');
+        }
+      });
+
+      window.addEventListener('dragover', (e) => e.preventDefault());
+
+      window.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dragCounter = 0;
+        dropOverlay.classList.add('hidden');
+        const file = e.dataTransfer.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => loadSorArrayBuffer(ev.target.result, file.name);
+        reader.readAsArrayBuffer(file);
+      });
+
+      window.addEventListener('resize', () => renderCanvas());
+
+      // Boot immediately with a realistic 1550nm Long-Haul binary .sor trace
+      loadSampleTrace('longhaul');
+    });
+  </script>
+</body>
+</html>
