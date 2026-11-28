@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#07110d">
+<title>RailRadar Personal | ByteBabyLabs</title>
+<meta name="description" content="A personal Indian Railways train and quota availability discovery workspace.">
+<style>
+:root{color-scheme:dark;--bg:#07110d;--panel:#0d1913;--panel2:#112219;--line:#234331;--green:#75f0a2;--muted:#9ab5a3;--text:#e7f5eb;--amber:#f6c86b;--red:#ff8585}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 80% 0%,#173b27 0,transparent 42%),var(--bg);color:var(--text);font:15px/1.55 ui-monospace,SFMono-Regular,Consolas,monospace}
+a{color:var(--green);text-decoration:none}.wrap{max-width:1180px;margin:auto;padding:28px 22px 60px}.top{display:flex;justify-content:space-between;align-items:center;gap:16px;border-bottom:1px solid var(--line);padding-bottom:18px}.brand{font-weight:800;letter-spacing:.13em;color:var(--green)}.tag{font-size:11px;border:1px solid var(--line);border-radius:99px;padding:5px 10px;color:var(--muted)}
+.hero{padding:42px 0 28px}.eyebrow{color:var(--green);font-size:12px;letter-spacing:.16em;text-transform:uppercase}.hero h1{font-size:clamp(32px,5vw,54px);line-height:1.08;margin:12px 0}.hero p{max-width:720px;color:var(--muted);margin:0}.layout{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(270px,.9fr);gap:18px}.panel{background:linear-gradient(145deg,rgba(17,34,25,.96),rgba(10,23,16,.96));border:1px solid var(--line);border-radius:16px;padding:22px;box-shadow:0 14px 40px #0003}.panel h2{font-size:17px;margin:0 0 18px;color:var(--green)}.fields{display:grid;grid-template-columns:1fr 1fr;gap:14px}.field label,.group-label{display:block;color:var(--muted);font-size:12px;margin-bottom:7px}.field input,.field select{width:100%;background:#07120c;border:1px solid #31523d;color:var(--text);border-radius:9px;padding:12px;font:inherit;min-width:0}.field input:focus,.field select:focus{outline:2px solid #75f0a266;border-color:var(--green)}.span2{grid-column:1/-1}.checks{display:flex;flex-wrap:wrap;gap:9px}.check{display:flex;align-items:center;gap:7px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;color:var(--text);font-size:12px;background:#09160e}.check input{accent-color:#75f0a2}.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}.btn{border:1px solid var(--green);border-radius:9px;background:var(--green);color:#07110d;padding:11px 17px;font:700 13px inherit;cursor:pointer}.btn.secondary{background:transparent;color:var(--green)}.btn:disabled{opacity:.55;cursor:not-allowed}.status{display:flex;gap:10px;align-items:flex-start;border:1px solid #66532a;background:#241d0d;border-radius:11px;padding:13px;color:#f6d99b;font-size:12px;margin-top:16px}.dot{width:8px;height:8px;border-radius:50%;background:var(--amber);margin-top:5px;flex:none}.side-list{display:grid;gap:12px}.side-item{display:flex;gap:12px;align-items:flex-start}.ico{width:32px;height:32px;border-radius:9px;background:#173322;color:var(--green);display:grid;place-items:center;flex:none}.side-item strong{display:block;font-size:13px}.side-item small{display:block;color:var(--muted);font-size:11px;margin-top:3px}.divider{height:1px;background:var(--line);margin:18px 0}.section{margin-top:20px}.result-head{display:flex;justify-content:space-between;align-items:center;gap:10px}.result-head h2{margin:0;color:var(--green);font-size:17px}.empty{padding:25px 12px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:10px;margin-top:15px;font-size:12px}.footer{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;color:var(--muted);font-size:11px;margin-top:35px}
+@media(max-width:780px){.layout{grid-template-columns:1fr}.fields{grid-template-columns:1fr 1fr}}@media(max-width:480px){.wrap{padding:18px 14px 40px}.fields{grid-template-columns:1fr}.span2{grid-column:auto}.hero{padding:30px 0 22px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="top"><a class="brand" href="../../index.html">BYTEBABYLABS</a><span class="tag">EXPERIMENTAL TOOL · PERSONAL</span></header>
+<section class="hero"><div class="eyebrow">Mobility intelligence / prototype</div><h1>RailRadar<span style="color:var(--green)">.</span></h1><p>Discover trains between stations and compare class-wise, quota-wise accommodation availability in one place. This preview currently validates the search experience; live railway data integration is not connected yet.</p></section>
+<main class="layout">
+<section class="panel">
+<h2>01 / Build your search</h2>
+<form id="searchForm">
+<div class="fields">
+<div class="field"><label for="from">FROM STATION</label><input id="from" name="from" placeholder="e.g. MAQ / Mangalore" required autocomplete="off"></div>
+<div class="field"><label for="to">TO STATION</label><input id="to" name="to" placeholder="e.g. CSMT / Mumbai" required autocomplete="off"></div>
+<div class="field"><label for="date">JOURNEY DATE</label><input id="date" name="date" type="date" required></div>
+<div class="field"><label for="passengers">PASSENGERS</label><select id="passengers" name="passengers"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option><option>6</option></select></div>
+<div class="field span2"><span class="group-label">TRAVEL CLASSES · SELECT ALL THAT APPLY</span><div class="checks">
+<label class="check"><input type="checkbox" name="classes" value="1A"> 1A</label><label class="check"><input type="checkbox" name="classes" value="2A" checked> 2A</label><label class="check"><input type="checkbox" name="classes" value="3A" checked> 3A</label><label class="check"><input type="checkbox" name="classes" value="3E"> 3E</label><label class="check"><input type="checkbox" name="classes" value="SL" checked> SL</label><label class="check"><input type="checkbox" name="classes" value="CC"> CC</label><label class="check"><input type="checkbox" name="classes" value="EC"> EC</label><label class="check"><input type="checkbox" name="classes" value="2S"> 2S</label>
+</div></div>
+<div class="field span2"><span class="group-label">QUOTAS · MULTI-SELECT</span><div class="checks">
+<label class="check"><input type="checkbox" name="quotas" value="GN" checked> General</label><label class="check"><input type="checkbox" name="quotas" value="TQ" checked> Tatkal</label><label class="check"><input type="checkbox" name="quotas" value="PT" checked> Premium Tatkal</label><label class="check"><input type="checkbox" name="quotas" value="LD"> Ladies</label><label class="check"><input type="checkbox" name="quotas" value="SS"> Senior Citizen</label><label class="check"><input type="checkbox" name="quotas" value="DP"> Duty Pass</label>
+</div></div>
+</div>
+<div class="actions"><button class="btn" type="submit">Validate search setup ↗</button><button class="btn secondary" type="reset">Reset</button></div>
+</form>
+<div id="notice" class="status" role="status"><span class="dot"></span><span><strong>Provider not connected.</strong><br>Nothing on this page makes a live IRCTC or CRIS enquiry. No availability is being simulated or presented as real.</span></div>
+</section>
+<aside class="panel">
+<h2>02 / Search pipeline</h2>
+<div class="side-list">
+<div class="side-item"><span class="ico">A</span><div><strong>Train discovery</strong><small>Find all trains operating on the selected date and serving both stations.</small></div></div>
+<div class="side-item"><span class="ico">B</span><div><strong>Class & quota expansion</strong><small>Build the requested enquiry matrix across supported classes and quotas.</small></div></div>
+<div class="side-item"><span class="ico">C</span><div><strong>Availability checks</strong><small>Query an authorised provider with controlled concurrency and request limits.</small></div></div>
+<div class="side-item"><span class="ico">D</span><div><strong>Consolidated results</strong><small>Normalise AVAILABLE, RAC, WL, REGRET, NOT OPEN and enquiry errors.</small></div></div>
+</div>
+<div class="divider"></div>
+<div class="eyebrow">Design principles</div>
+<p style="color:var(--muted);font-size:12px;margin-bottom:0">Read-only · Manual refresh · Provider-independent · Timestamped results · No booking automation</p>
+</aside>
+</main>
+<section class="panel section">
+<div class="result-head"><h2>03 / Availability results</h2><span class="tag">Awaiting provider</span></div>
+<div class="empty" id="emptyState">Your train and quota availability matrix will appear here after an authorised data provider is integrated.<br><br>Search setup validation does not contact railway systems.</div>
+</section>
+<footer class="footer"><span>ByteBabyLabs · RailRadar Personal · Prototype</span><span><a href="../../index.html">Back to ByteBabyLabs</a> · No affiliation with Indian Railways or IRCTC</span></footer>
+</div>
+<script>
+const form=document.getElementById('searchForm');
+const notice=document.getElementById('notice');
+const today=new Date();const localDate=new Date(today.getTime()-today.getTimezoneOffset()*60000).toISOString().slice(0,10);
+document.getElementById('date').min=localDate;document.getElementById('date').value=localDate;
+form.addEventListener('submit',event=>{
+ event.preventDefault();
+ const data=new FormData(form);
+ const classes=data.getAll('classes');const quotas=data.getAll('quotas');
+ if(!classes.length||!quotas.length){notice.innerHTML='<span class="dot"></span><span><strong>Selection incomplete.</strong><br>Select at least one travel class and one quota.</span>';return;}
+ const from=data.get('from').trim(),to=data.get('to').trim();
+ if(from.toLowerCase()===to.toLowerCase()){notice.innerHTML='<span class="dot"></span><span><strong>Check your stations.</strong><br>Origin and destination must be different.</span>';return;}
+ notice.innerHTML='<span class="dot"></span><span><strong>Search configuration valid.</strong><br>'+classes.length+' classes × '+quotas.length+' quotas · '+data.get('passengers')+' passenger(s). Provider integration is pending; no live availability request was made.</span>';
+});
+form.addEventListener('reset',()=>setTimeout(()=>{document.getElementById('date').value=localDate;notice.innerHTML='<span class="dot"></span><span><strong>Provider not connected.</strong><br>No live railway enquiry has been made.</span>'},0));
+</script>
+</body>
+</html>
